@@ -37,11 +37,13 @@ Also, expect to have to check and modify config.h and cpu_map.h for your specifi
 ... needs to be written. For right now, there's some information in the UI Support folder, and also check out the config.h and cpu_map.h files for machine-specific setup.
 
 This image (from Reprap.org) may be helpful in figuring out what I/O pin is what:
-https://reprap.org/mediawiki/images/f/f6/RAMPS1.4schematic.png
+
+https://reprap.org/mediawiki/images/c/ca/Arduinomega1-4connectors.png
 
 
 ## Compiling:
 The makefile is out-of-date. Use the Arduino IDE to compile this, in the same manner as the standard grbl distribution.
+
 https://github.com/gnea/grbl/wiki/Compiling-Grbl
 
 
