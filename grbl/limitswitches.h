@@ -1,5 +1,5 @@
 /*
-  limits.h - code pertaining to limit-switches and performing the homing cycle
+  limitswitches.h - code pertaining to limit-switches and performing the homing cycle
   Part of Grbl
 
   Copyright (c) 2012-2016 Sungeun K. Jeon for Gnea Research LLC
@@ -19,8 +19,8 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef limits_h
-#define limits_h
+#ifndef limitswitches_h
+#define limitswitches_h
 
 
 // Initialize the limits module

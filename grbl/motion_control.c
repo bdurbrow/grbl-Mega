@@ -203,7 +203,7 @@ void mc_dwell(float seconds)
 // Perform homing cycle to locate and set machine zero. Only '$H' executes this command.
 // NOTE: There should be no motions in the buffer and Grbl must be in an idle state before
 // executing the homing cycle. This prevents incorrect buffered plans after homing.
-void mc_homing_cycle(uint8_t cycle_mask)
+void mc_homing_cycle(uint8_t cycle_mask __attribute__ ((unused)))
 {
   // Check and abort homing cycle, if hard limits are already enabled. Helps prevent problems
   // with machines with limits wired on both ends of travel to one limit pin.

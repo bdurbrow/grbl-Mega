@@ -67,7 +67,7 @@ void settings_store_startup_line(uint8_t n, char *line)
     protocol_buffer_synchronize(); // A startup line may contain a motion and be executing. 
   #endif
   uint32_t addr = n*(LINE_BUFFER_SIZE+1)+EEPROM_ADDR_STARTUP_BLOCK;
-  memcpy_to_eeprom_with_checksum(addr,(char*)line, LINE_BUFFER_SIZE);
+  memcpy_to_eeprom_with_checksum(addr, line, LINE_BUFFER_SIZE);
 }
 
 
@@ -76,7 +76,7 @@ void settings_store_startup_line(uint8_t n, char *line)
 void settings_store_build_info(char *line)
 {
   // Build info can only be stored when state is IDLE.
-  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_BUILD_INFO,(char*)line, LINE_BUFFER_SIZE);
+  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_BUILD_INFO, line, LINE_BUFFER_SIZE);
 }
 
 
@@ -87,7 +87,7 @@ void settings_write_coord_data(uint8_t coord_select, float *coord_data)
     protocol_buffer_synchronize();
   #endif
   uint32_t addr = coord_select*(sizeof(float)*N_AXIS+1) + EEPROM_ADDR_PARAMETERS;
-  memcpy_to_eeprom_with_checksum(addr,(char*)coord_data, sizeof(float)*N_AXIS);
+  memcpy_to_eeprom_with_checksum(addr, coord_data, sizeof(float)*N_AXIS);
 }
 
 
@@ -96,7 +96,7 @@ void settings_write_coord_data(uint8_t coord_select, float *coord_data)
 void write_global_settings()
 {
   eeprom_put_char(0, SETTINGS_VERSION);
-  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_GLOBAL, (char*)&settings, sizeof(settings_t));
+  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_GLOBAL, &settings, sizeof(settings_t));
 }
 
 
@@ -128,6 +128,13 @@ void settings_restore(uint8_t restore_flag) {
   if (restore_flag & SETTINGS_RESTORE_BUILD_INFO) {
     eeprom_put_char(EEPROM_ADDR_BUILD_INFO , 0);
     eeprom_put_char(EEPROM_ADDR_BUILD_INFO+1 , 0); // Checksum
+  }
+  
+  if (restore_flag & SETTINGS_RESTORE_TOOL_DATA) {
+    for(uint8_t tool = 0; tool <= MAX_TOOL_NUMBER; tool++) {
+      store_tool_length(tool, 0);
+      store_tool_diameter(tool, 0);
+    }
   }
 }
 
@@ -364,3 +371,34 @@ uint8_t get_direction_pin_mask(uint8_t axis_idx)
   }
 #endif //DEFAULTS_RAMPS_BOARD
 
+// Stores the length of the specified tool. Units are 1/1000mm.
+void store_tool_length(uint8_t tool, int32_t length)
+{
+  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_TOOL_LENGTH + (tool * (sizeof(int32_t) + 1)), &length, sizeof(int32_t));
+}
+
+// Returns the length of the specified tool. Units are 1/1000mm.
+int32_t get_tool_length(uint8_t tool)
+{
+  // TODO: cause alarm if read fails.
+
+  int32_t length;
+  memcpy_from_eeprom_with_checksum(&length, EEPROM_ADDR_TOOL_LENGTH + (tool * (sizeof(int32_t) + 1)), sizeof(int32_t));
+  return length;
+}
+
+// Stores the length of the specified tool. Units are 1/1000mm.
+void store_tool_diameter(uint8_t tool, int32_t length)
+{
+  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_TOOL_DIAMETER + (tool * (sizeof(int32_t) + 1)), &length, sizeof(int32_t));
+}
+
+// Returns the length of the specified tool. Units are 1/1000mm.
+int32_t get_tool_diameter(uint8_t tool)
+{
+  // TODO: cause alarm if read fails.
+
+  int32_t length;
+  memcpy_from_eeprom_with_checksum(&length, EEPROM_ADDR_TOOL_DIAMETER + (tool * (sizeof(int32_t) + 1)), sizeof(int32_t));
+  return length;
+}

@@ -39,28 +39,41 @@
 #include <stdbool.h>
 
 // Define the Grbl system include files. NOTE: Do not alter organization.
-#include "config.h"
-#include "nuts_bolts.h"
-#include "settings.h"
-#include "system.h"
-#include "defaults.h"
-#include "cpu_map.h"
-#include "planner.h"
-#include "coolant_control.h"
-#include "eeprom.h"
-#include "gcode.h"
-#include "limits.h"
-#include "motion_control.h"
-#include "planner.h"
-#include "print.h"
-#include "probe.h"
-#include "protocol.h"
-#include "report.h"
-#include "serial.h"
-#include "spindle_control.h"
-#include "stepper.h"
-#include "jog.h"
-#include "sleep.h"
+#ifdef __cplusplus	
+  extern "C"{
+#endif
+
+  #include "config.h"
+  #include "nuts_bolts.h"
+  #include "grbl_expansion_interface.h"
+  #include "settings.h"
+  #include "system.h"
+  #include "defaults.h"
+  #include "cpu_map.h"
+  #include "planner.h"
+  #include "coolant_control.h"
+  #include "eeprom.h"
+  #include "gcode.h"
+  #include "limitswitches.h"
+  #include "motion_control.h"
+  #include "planner.h"
+  #include "serialprint.h"
+  #include "probe.h"
+  #include "protocol.h"
+  #include "report.h"
+  #include "serial.h"
+  #include "spindle_control.h"
+  #include "stepper.h"
+  #include "jog.h"
+  #include "sleep.h"
+
+#ifdef __cplusplus
+  } // extern "C"
+#endif
+
+#include "DriverUtilities.h"
+#include "SDSupport.h"
+#include "UISupport.h"
 
 // ---------------------------------------------------------------------------------------
 // COMPILE-TIME ERROR CHECKING OF DEFINE VALUES:

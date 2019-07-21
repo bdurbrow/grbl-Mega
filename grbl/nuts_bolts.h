@@ -53,16 +53,23 @@
 #define clear_vector(a) memset(a, 0, sizeof(a))
 #define clear_vector_float(a) memset(a, 0.0, sizeof(float)*N_AXIS)
 // #define clear_vector_long(a) memset(a, 0.0, sizeof(long)*N_AXIS)
-#define max(a,b) (((a) > (b)) ? (a) : (b))
-#define min(a,b) (((a) < (b)) ? (a) : (b))
+#ifndef max
+  #define max(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+#ifndef min
+  #define min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
 #define isequal_position_vector(a,b) !(memcmp(a, b, sizeof(float)*N_AXIS))
 
 // Bit field and masking macros
-#define bit(n) (1 << n)
+#ifndef bit
+  #define bit(n) (1 << n)
+#endif
 #define bit_true(x,mask) (x) |= (mask)
 #define bit_false(x,mask) (x) &= ~(mask)
 #define bit_istrue(x,mask) ((x & mask) != 0)
 #define bit_isfalse(x,mask) ((x & mask) == 0)
+#define bit_setflag(x,y,mask) (y)?((x) |= (mask)):((x) &= ~(mask))
 
 // Read a floating point value from a string. Line points to the input buffer, char_counter
 // is the indexer pointing to the current character of the line, while float_ptr is

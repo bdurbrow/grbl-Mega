@@ -60,6 +60,7 @@
 #define SETTINGS_RESTORE_PARAMETERS bit(1)
 #define SETTINGS_RESTORE_STARTUP_LINES bit(2)
 #define SETTINGS_RESTORE_BUILD_INFO bit(3)
+#define SETTINGS_RESTORE_TOOL_DATA bit(4)
 #ifndef SETTINGS_RESTORE_ALL
   #define SETTINGS_RESTORE_ALL 0xFF // All bitflags
 #endif
@@ -69,6 +70,8 @@
 #define EEPROM_ADDR_PARAMETERS     512U
 #define EEPROM_ADDR_STARTUP_BLOCK  768U
 #define EEPROM_ADDR_BUILD_INFO     942U
+#define EEPROM_ADDR_TOOL_LENGTH    2048U
+#define EEPROM_ADDR_TOOL_DIAMETER  2560U
 
 // Define EEPROM address indexing for coordinate parameters
 #define N_COORDINATE_SYSTEM 6  // Number of supported work coordinate systems (from index 1)
@@ -120,6 +123,10 @@ void settings_restore(uint8_t restore_flag);
 // A helper method to set new settings from command line
 uint8_t settings_store_global_setting(uint8_t parameter, float value);
 
+// Method to store Grbl global settings struct and version number into EEPROM
+// NOTE: This function can only be called in IDLE state.
+void write_global_settings();
+
 // Stores the protocol line variable as a startup line in EEPROM
 void settings_store_startup_line(uint8_t n, char *line);
 
@@ -146,6 +153,18 @@ uint8_t get_direction_pin_mask(uint8_t i);
 
 // Returns the limit pin mask according to Grbl's internal axis numbering
 uint8_t get_limit_pin_mask(uint8_t i);
+
+// Stores the length of the specified tool. Units are 1/1000mm.
+void store_tool_length(uint8_t tool, int32_t length);
+
+// Returns the length of the specified tool. Units are 1/1000mm.
+int32_t get_tool_length(uint8_t tool);
+
+// Stores the length of the specified tool. Units are 1/1000mm.
+void store_tool_diameter(uint8_t tool, int32_t length);
+
+// Returns the length of the specified tool. Units are 1/1000mm.
+int32_t get_tool_diameter(uint8_t tool);
 
 
 #endif

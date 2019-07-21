@@ -22,7 +22,7 @@
 #ifndef protocol_h
 #define protocol_h
 
-// Line buffer size from the serial input stream to be executed.
+// Line buffer size from the input stream to be executed.
 #ifndef LINE_BUFFER_SIZE
   #define LINE_BUFFER_SIZE 256
 #endif

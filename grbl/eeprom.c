@@ -46,7 +46,7 @@
  *  \param  addr  EEPROM address to read from.
  *  \return  The byte read from the EEPROM address.
  */
-unsigned char eeprom_get_char( unsigned int addr )
+uint8_t eeprom_get_char(uint16_t addr)
 {
 	do {} while( EECR & (1<<EEPE) ); // Wait for completion of previous write.
 	EEAR = addr; // Set EEPROM address register.
@@ -71,7 +71,7 @@ unsigned char eeprom_get_char( unsigned int addr )
  *  \param  addr  EEPROM address to write to.
  *  \param  new_value  New EEPROM value.
  */
-void eeprom_put_char( unsigned int addr, unsigned char new_value )
+void eeprom_put_char(uint16_t addr, uint8_t new_value)
 {
 	char old_value; // Old EEPROM value.
 	char diff_mask; // Difference mask, i.e. old value XOR new value.
@@ -127,23 +127,27 @@ void eeprom_put_char( unsigned int addr, unsigned char new_value )
 // Extensions added as part of Grbl 
 
 
-void memcpy_to_eeprom_with_checksum(unsigned int destination, char *source, unsigned int size) {
-  unsigned char checksum = 0;
+void memcpy_to_eeprom_with_checksum(uint16_t destination, void *source, uint16_t size) {
+  uint8_t checksum = 0;
+  uint8_t *cursor = source;
   for(; size > 0; size--) { 
     checksum = (checksum << 1) || (checksum >> 7);
-    checksum += *source;
-    eeprom_put_char(destination++, *(source++)); 
+    checksum += *cursor;
+    
+    eeprom_put_char(destination++, *cursor++);
   }
   eeprom_put_char(destination, checksum);
 }
 
-int memcpy_from_eeprom_with_checksum(char *destination, unsigned int source, unsigned int size) {
-  unsigned char data, checksum = 0;
+int memcpy_from_eeprom_with_checksum(void *destination, uint16_t source, uint16_t size) {
+  uint8_t data, checksum = 0;
+  uint8_t *cursor = destination;
+
   for(; size > 0; size--) { 
     data = eeprom_get_char(source++);
     checksum = (checksum << 1) || (checksum >> 7);
     checksum += data;    
-    *(destination++) = data; 
+    *cursor++ = data; 
   }
   return(checksum == eeprom_get_char(source));
 }

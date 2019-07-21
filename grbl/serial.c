@@ -81,11 +81,16 @@ void serial_init()
   // defaults to 8-bit, no parity, 1 stop bit
 }
 
+#if((TX_RING_BUFFER > 255) || (RX_RING_BUFFER > 255))
+  typedef uint16_t bufferIndex_t;
+#else
+  typedef uint8_t bufferIndex_t;
+#endif
 
 // Writes one byte to the TX serial buffer. Called by main program.
 void serial_write(uint8_t data) {
   // Calculate next head
-  uint8_t next_head = serial_tx_buffer_head + 1;
+  bufferIndex_t next_head = serial_tx_buffer_head + 1;
   if (next_head == TX_RING_BUFFER) { next_head = 0; }
 
   // Wait until there is space in the buffer
@@ -102,11 +107,10 @@ void serial_write(uint8_t data) {
   UCSR0B |=  (1 << UDRIE0);
 }
 
-
 // Data Register Empty Interrupt handler
 ISR(SERIAL_UDRE)
 {
-  uint8_t tail = serial_tx_buffer_tail; // Temporary serial_tx_buffer_tail (to optimize for volatile)
+  bufferIndex_t tail = serial_tx_buffer_tail; // Temporary serial_tx_buffer_tail (to optimize for volatile)
 
   // Send a byte from the buffer
   UDR0 = serial_tx_buffer[tail];
@@ -121,11 +125,10 @@ ISR(SERIAL_UDRE)
   if (tail == serial_tx_buffer_head) { UCSR0B &= ~(1 << UDRIE0); }
 }
 
-
 // Fetches the first byte in the serial read buffer. Called by main program.
 uint8_t serial_read()
 {
-  uint8_t tail = serial_rx_buffer_tail; // Temporary serial_rx_buffer_tail (to optimize for volatile)
+  bufferIndex_t tail = serial_rx_buffer_tail; // Temporary serial_rx_buffer_tail (to optimize for volatile)
   if (serial_rx_buffer_head == tail) {
     return SERIAL_NO_DATA;
   } else {
@@ -139,11 +142,10 @@ uint8_t serial_read()
   }
 }
 
-
 ISR(SERIAL_RX)
 {
   uint8_t data = UDR0;
-  uint8_t next_head;
+  bufferIndex_t next_head;
 
   // Pick off realtime command characters directly from the serial stream. These characters are
   // not passed into the main buffer, but these set system state flag bits for realtime execution.
@@ -194,7 +196,6 @@ ISR(SERIAL_RX)
       }
   }
 }
-
 
 void serial_reset_read_buffer()
 {

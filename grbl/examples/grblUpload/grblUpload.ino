@@ -1,5 +1,5 @@
 /***********************************************************************
-This sketch compiles and uploads Grbl to your 328p-based Arduino! 
+This sketch compiles and uploads Grbl to your mega2560-based Arduino! 
 
 To use:
 - First make sure you have imported Grbl source code into your Arduino
@@ -15,7 +15,7 @@ For advanced users:
   If you'd like to see what else Grbl can do, there are some additional
   options for customization and features you can enable or disable. 
   Navigate your file system to where the Arduino IDE has stored the Grbl 
-  source code files, open the 'config.h' file in your favorite text 
+  source code files, open the 'config.h' file in your favorite text  
   editor. Inside are dozens of feature descriptions and #defines. Simply
   comment or uncomment the #defines or alter their assigned values, save
   your changes, and then click 'Upload' here. 

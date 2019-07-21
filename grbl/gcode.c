@@ -25,7 +25,6 @@
 // arbitrary value, and some GUIs may require more. So we increased it based on a max safe
 // value when converting a float (7.2 digit precision)s to an integer.
 #define MAX_LINE_NUMBER 10000000
-#define MAX_TOOL_NUMBER 255 // Limited by max unsigned 8-bit value
 
 #define AXIS_COMMAND_NONE 0
 #define AXIS_COMMAND_NON_MODAL 1
@@ -42,7 +41,9 @@ parser_block_t gc_block;
 void gc_init()
 {
   memset(&gc_state, 0, sizeof(parser_state_t));
-
+  
+  gc_state.tool = 1;
+  
   // Load default G54 coordinate system.
   if (!(settings_read_coord_data(gc_state.modal.coord_select,gc_state.coord_system))) {
     report_status_message(STATUS_SETTING_READ_FAIL);
@@ -65,6 +66,11 @@ void gc_sync_position()
 // coordinates, respectively.
 uint8_t gc_execute_line(char *line)
 {
+  uint8_t gxi_result;
+
+  // Grbl Expansion Interface line processing hook.
+  gxi_will_parse_line(line);
+
   /* -------------------------------------------------------------------------------------
      STEP 1: Initialize parser block struct and copy current g-code state modes. The parser
      updates these modes and commands as the block line is parser and will only be used and
@@ -238,7 +244,7 @@ uint8_t gc_execute_line(char *line)
         break;
 
       case 'M':
-
+        UIStatusNeedsUpdate();
         // Determine 'M' command and its modal group
         if (mantissa > 0) { FAIL(STATUS_GCODE_COMMAND_VALUE_NOT_INTEGER); } // [No Mxx.x commands]
         switch(int_value) {
@@ -272,7 +278,15 @@ uint8_t gc_execute_line(char *line)
               gc_block.modal.override = OVERRIDE_PARKING_MOTION;
               break;
           #endif
-          default: FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported M command]
+          default:
+            {
+              gxi_result = gxi_validate_M_code(int_value);
+              if(gxi_result) {
+                FAIL(gxi_result); // [Unsupported M command]
+              } else {
+                gc_block.values.gxi_mcode = int_value;
+              }
+            }
         }
 
         // Check for more than one command per modal group violations in the current block
@@ -833,6 +847,9 @@ uint8_t gc_execute_line(char *line)
      need to update the state and execute the block according to the order-of-execution.
   */
 
+  // Grbl Expansion Interface block execution hook.
+  gxi_will_execute_block(gc_block, gc_state, gc_parser_flags);
+
   // Initialize planner data struct for motion blocks.
   plan_line_data_t plan_data;
   plan_line_data_t *pl_data = &plan_data;
@@ -845,7 +862,7 @@ uint8_t gc_execute_line(char *line)
   if (gc_parser_flags & GC_PARSER_JOG_MOTION) {
     // Only distance and unit modal commands and G53 absolute override command are allowed.
     // NOTE: Feed rate word and axis word checks have already been performed in STEP 3.
-    if (command_words & ~(bit(MODAL_GROUP_G3) | bit(MODAL_GROUP_G6 | bit(MODAL_GROUP_G0))) ) { FAIL(STATUS_INVALID_JOG_COMMAND) };
+    if (command_words & ~(bit(MODAL_GROUP_G3) | bit(MODAL_GROUP_G6) | bit(MODAL_GROUP_G0)) ) { FAIL(STATUS_INVALID_JOG_COMMAND) };
     if (!(gc_block.non_modal_command == NON_MODAL_ABSOLUTE_OVERRIDE || gc_block.non_modal_command == NON_MODAL_NO_ACTION)) { FAIL(STATUS_INVALID_JOG_COMMAND); }
 
     // Initialize planner data to current spindle and coolant modal state.

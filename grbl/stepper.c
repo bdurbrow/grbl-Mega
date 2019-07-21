@@ -20,7 +20,7 @@
 */
 
 #include "grbl.h"
-
+#include "pins_arduino_mega.h"
 
 // Some useful constants.
 #define DT_SEGMENT (1.0/(ACCELERATION_TICKS_PER_SECOND*60.0)) // min/segment
@@ -59,17 +59,17 @@
 // data for its own use.
 #ifdef DEFAULTS_RAMPS_BOARD
   typedef struct {
-  uint32_t steps[N_AXIS];
-  uint32_t step_event_count;
-  uint8_t direction_bits[N_AXIS];
-  uint8_t is_pwm_rate_adjusted; // Tracks motions that require constant laser power/rate
+    uint32_t steps[N_AXIS];
+    uint32_t step_event_count;
+    uint8_t direction_bits[N_AXIS];
+    uint8_t is_pwm_rate_adjusted;               // Tracks motions that require constant laser power/rate
   } st_block_t;
 #else
   typedef struct {
     uint32_t steps[N_AXIS];
     uint32_t step_event_count;
     uint8_t direction_bits;
-    uint8_t is_pwm_rate_adjusted; // Tracks motions that require constant laser power/rate
+    uint8_t is_pwm_rate_adjusted;               // Tracks motions that require constant laser power/rate
   } st_block_t;
 #endif // Ramps Board
 
@@ -80,15 +80,17 @@ static st_block_t st_block_buffer[SEGMENT_BUFFER_SIZE-1];
 // planner buffer. Once "checked-out", the steps in the segments buffer cannot be modified by
 // the planner, where the remaining planner block steps still can.
 typedef struct {
-  uint16_t n_step;           // Number of step events to be executed for this segment
-  uint16_t cycles_per_tick;  // Step distance traveled per ISR tick, aka step rate.
-  uint8_t  st_block_index;   // Stepper block data index. Uses this information to execute this segment.
+  uint16_t n_step;                            // Number of step events to be executed for this segment
+  uint16_t cycles_per_tick;                   // Step distance traveled per ISR tick, aka step rate.
+  uint8_t  st_block_index;                    // Stepper block data index. Uses this information to execute this segment.
   #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
-    uint8_t amass_level;    // Indicates AMASS level for the ISR to execute this segment
+    uint8_t amass_level;                      // Indicates AMASS level for the ISR to execute this segment
   #else
-    uint8_t prescaler;      // Without AMASS, a prescaler is required to adjust for slow timing.
+    uint8_t prescaler;                        // Without AMASS, a prescaler is required to adjust for slow timing.
   #endif
   uint16_t spindle_pwm;
+  gxi_callback_t callbackFunction;            // Callback function to be called by the stepper ISR on completion of the line move.
+  gxi_callback_context_t callbackContext;     // Context parameter for the callback function.
 } segment_t;
 static segment_t segment_buffer[SEGMENT_BUFFER_SIZE];
 
@@ -354,7 +356,7 @@ void st_go_idle()
 // int8 variables and update position counters only when a segment completes. This can get complicated
 // with probing and homing cycles that require true real-time positions.
 ISR(TIMER1_COMPA_vect)
-{
+{  
   #ifdef DEFAULTS_RAMPS_BOARD
     int i;
   #endif // Ramps Board
@@ -534,6 +536,7 @@ ISR(TIMER1_COMPA_vect)
   st.step_count--; // Decrement step events count
   if (st.step_count == 0) {
     // Segment is complete. Discard current segment and advance segment indexing.
+    if (st.exec_segment->callbackFunction ) { st.exec_segment->callbackFunction(st.exec_segment->callbackContext); }
     st.exec_segment = NULL;
     if ( ++segment_buffer_tail == SEGMENT_BUFFER_SIZE) { segment_buffer_tail = 0; }
   }
@@ -754,6 +757,14 @@ static uint8_t st_next_block_index(uint8_t block_index)
   }
 #endif
 
+
+// Inline function used by st_prep_buffer() to allow the stepper ISR to start executing a segment.
+static inline void st_release_segment_to_ISR(void)
+{
+  // Segment is complete! Increment segment buffer indices, so stepper ISR can immediately execute it.
+  segment_buffer_head = segment_next_head;
+  if ( ++segment_next_head == SEGMENT_BUFFER_SIZE ) { segment_next_head = 0; }
+}
 
 /* Prepares step segment buffer. Continuously called from main program.
 
@@ -1142,10 +1153,6 @@ void st_prep_buffer()
       }
     #endif
 
-    // Segment complete! Increment segment buffer indices, so stepper ISR can immediately execute it.
-    segment_buffer_head = segment_next_head;
-    if ( ++segment_next_head == SEGMENT_BUFFER_SIZE ) { segment_next_head = 0; }
-
     // Update the appropriate planner and segment data.
     pl_block->millimeters = mm_remaining;
     prep.steps_remaining = n_steps_remaining;
@@ -1162,18 +1169,23 @@ void st_prep_buffer()
         #ifdef PARKING_ENABLE
           if (!(prep.recalculate_flag & PREP_FLAG_PARKING)) { prep.recalculate_flag |= PREP_FLAG_HOLD_PARTIAL_BLOCK; }
         #endif
-        return; // Bail!
+        st_release_segment_to_ISR(); return; // Bail!
       } else { // End of planner block
         // The planner block is complete. All steps are set to be executed in the segment buffer.
         if (sys.step_control & STEP_CONTROL_EXECUTE_SYS_MOTION) {
           bit_true(sys.step_control,STEP_CONTROL_END_MOTION);
-          return;
+          st_release_segment_to_ISR(); return;
         }
+        
+        // As this is the end of the planner block, set the callback function and context.
+        prep_segment->callbackFunction = pl_block->callbackFunction;
+        prep_segment->callbackContext = pl_block->callbackContext;
+
         pl_block = NULL; // Set pointer to indicate check and load next planner block.
         plan_discard_current_block();
       }
     }
-
+    st_release_segment_to_ISR();
   }
 }
 

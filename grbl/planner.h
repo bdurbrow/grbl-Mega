@@ -78,15 +78,22 @@ typedef struct {
 
   // Stored spindle speed data used by spindle overrides and resuming methods.
   float spindle_speed;    // Block spindle speed. Copied from pl_line_data.
+  
+  // Callback function to be called by the stepper ISR on completion of the line move.
+  gxi_callback_t callbackFunction;
+  // Context parameter for the callback function.
+  gxi_callback_context_t callbackContext;
 } plan_block_t;
 
 
 // Planner data prototype. Must be used when passing new motions to the planner.
 typedef struct {
-  float feed_rate;          // Desired feed rate for line motion. Value is ignored, if rapid motion.
-  float spindle_speed;      // Desired spindle speed through line motion.
-  int32_t line_number;    // Desired line number to report when executing.
-  uint8_t condition;        // Bitflag variable to indicate planner conditions. See defines above.
+  float feed_rate;                            // Desired feed rate for line motion. Value is ignored, if rapid motion.
+  float spindle_speed;                        // Desired spindle speed through line motion.
+  int32_t line_number;                        // Desired line number to report when executing.
+  uint8_t condition;                          // Bitflag variable to indicate planner conditions. See defines above.
+  gxi_callback_t callbackFunction;            // Callback function to be called by the stepper ISR on completion of the line move.
+  gxi_callback_context_t callbackContext;     // Context parameter for the callback function.
 } plan_line_data_t;
 
 

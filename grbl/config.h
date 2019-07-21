@@ -27,19 +27,17 @@
 
 #ifndef config_h
 #define config_h
-#include "grbl.h" // For Arduino IDE compatibility.
-
 
 // Define CPU pin map and default settings.
 // NOTE: OEMs can avoid the need to maintain/update the defaults.h and cpu_map.h files and use only
 // one configuration file by placing their specific defaults and pin map at the bottom of this file.
 // If doing so, simply comment out these two defines and see instructions below.
-#define DEFAULTS_GENERIC
-#define CPU_MAP_2560_INITIAL
+//#define DEFAULTS_GENERIC
+//#define CPU_MAP_2560_INITIAL
 
 // To use with RAMPS 1.4 Board, comment out the above defines and uncomment the next two defines
-// #define DEFAULTS_RAMPS_BOARD
-// #define CPU_MAP_2560_RAMPS_BOARD
+ #define DEFAULTS_RAMPS_BOARD
+ #define CPU_MAP_2560_RAMPS_BOARD
 
 // Serial baud rate
 // #define BAUD_RATE 230400
@@ -193,8 +191,12 @@
 // normally-closed switches on the specified pins, rather than the default normally-open switches.
 // NOTE: The top option will mask and invert all control pins. The bottom option is an example of
 // inverting only two control pins, the safety door and reset. See cpu_map.h for other bit definitions.
-// #define INVERT_CONTROL_PIN_MASK CONTROL_MASK // Default disabled. Uncomment to disable.
+// #define INVERT_CONTROL_PIN_MASK CONTROL_MASK // Default disabled. Uncomment to enable.
 // #define INVERT_CONTROL_PIN_MASK ((1<<CONTROL_SAFETY_DOOR_BIT)|(1<<CONTROL_RESET_BIT)) // Default disabled.
+
+// If the Cycle Start control input is on a seperate port from the rest of the control inputs,
+// enabling this inverts it's logic.
+// #define INVERT_CONTROL_CYCLE_START // Default disabled. Uncomment to enable.
 
 // Inverts select limit pin states based on the following mask. This effects all limit pin functions,
 // such as hard limits and homing. However, this is different from overall invert limits setting.
@@ -261,8 +263,8 @@
 
 // When a M2 or M30 program end command is executed, most g-code states are restored to their defaults.
 // This compile-time option includes the restoring of the feed, rapid, and spindle speed override values
-// to their default values at program end.
-#define RESTORE_OVERRIDES_AFTER_PROGRAM_END // Default enabled. Comment to disable.
+// to their default values at program end. Disable if using front panel potentiometers for this function.
+// #define RESTORE_OVERRIDES_AFTER_PROGRAM_END // Default enabled. Comment to disable.
 
 // The status report change for Grbl v1.1 and after also removed the ability to disable/enable most data
 // fields from the report. This caused issues for GUI developers, who've had to manage several scenarios
@@ -501,6 +503,8 @@
 #define ENABLE_RESTORE_EEPROM_WIPE_ALL         // '$RST=*' Default enabled. Comment to disable.
 #define ENABLE_RESTORE_EEPROM_DEFAULT_SETTINGS // '$RST=$' Default enabled. Comment to disable.
 #define ENABLE_RESTORE_EEPROM_CLEAR_PARAMETERS // '$RST=#' Default enabled. Comment to disable.
+#define ENABLE_RESTORE_EEPROM_CLEAR_TOOL_DATA  // '$RST=T' Default enabled. Comment to disable.
+
 
 // Defines the EEPROM data restored upon a settings version change and `$RST=*` command. Whenever the
 // the settings or other EEPROM data structure changes between Grbl versions, Grbl will automatically
@@ -509,7 +513,7 @@
 // written into the Arduino EEPROM via a seperate .INO sketch to contain product data. Altering this
 // macro to not restore the build info EEPROM will ensure this data is retained after firmware upgrades.
 // NOTE: Uncomment to override defaults in settings.h
-// #define SETTINGS_RESTORE_ALL (SETTINGS_RESTORE_DEFAULTS | SETTINGS_RESTORE_PARAMETERS | SETTINGS_RESTORE_STARTUP_LINES | SETTINGS_RESTORE_BUILD_INFO)
+// #define SETTINGS_RESTORE_ALL (SETTINGS_RESTORE_DEFAULTS | SETTINGS_RESTORE_PARAMETERS | SETTINGS_RESTORE_STARTUP_LINES | SETTINGS_RESTORE_BUILD_INFO | SETTINGS_RESTORE_TOOL_DATA)
 
 // Enable the '$I=(string)' build info write command. If disabled, any existing build info data must
 // be placed into EEPROM via external means with a valid checksum value. This macro option is useful
@@ -622,7 +626,54 @@
 #define RPM_LINE_A4  1.203413e-01  // Used N_PIECES = 4. A and B constants of line 4.
 #define RPM_LINE_B4  1.151360e+03
 
+// Specifies the maximum number of tool supported.
+#define MAX_TOOL_NUMBER 99
 
+// ---------------------------------------------------------------------------------------
+// Activate support for reading G-Code files off of an SD card.
+#define USE_SD_SUPPORT
+
+// ---------------------------------------------------------------------------------------
+// Activate support for an LCD, quadrature encoder with pushbutton, and keypad user interface.
+#define USE_UI_SUPPORT
+
+	// Activate support for a second quadrature encoder used for jogging
+	#define USE_UI_ENCODER_B
+	
+	// Enable the ISR for reading UI Encoder B. On RAMPS, this also changes the limit pin assignment.
+	#define USE_UI_ENCODER_B_ISR
+	
+	// Defines the jogging base string that the distance is appended to.
+	#define UI_JOGGING_BASE_STRING_METRIC   		"$J=G91F1500"
+	#define UI_JOGGING_BASE_STRING_INCH     		"$J=G91F60"
+	#define UI_JOGGING_POWERFEED_BASE_STRING   	"$J=G90G53F"
+	// Defines the jogging increment ranges for metric and inch modes.
+	// 0 = 0.0001
+	// 1 = 0.001
+	// 2 = 0.01
+	// 3 = 0.1
+	// 4 = 1
+	// 5 = 10
+	#define UI_JOGGING_UPPER_INCH_RANGE     	3
+	#define UI_JOGGING_LOWER_INCH_RANGE     	0
+	#define UI_JOGGING_INITIAL_INCH_RANGE     2
+	#define UI_JOGGING_UPPER_METRIC_RANGE     5
+	#define UI_JOGGING_LOWER_METRIC_RANGE     1
+	#define UI_JOGGING_INITIAL_METRIC_RANGE   3
+	
+	// If defined, this will enable the feed rate override potentiometer.
+	// The value specified is the ADC channel to be used. Input voltage range is 0 to 2.5 volts.
+	//#define UI_FEED_OVERRIDE_POTENTIOMETER		13
+	
+	// If defined, this will enable the rapid rate override potentiometer.
+	// The value specified is the ADC channel to be used. Input voltage range is 0 to 2.5 volts.
+	//#define UI_RAPID_OVERRIDE_POTENTIOMETER		14
+	
+	// If defined, this will enable the spindle rate override potentiometer.
+	// The value specified is the ADC channel to be used. Input voltage range is 0 to 2.5 volts.
+	//#define UI_SPINDLE_OVERRIDE_POTENTIOMETER		15
+	
+	
 /* ---------------------------------------------------------------------------------------
    OEM Single File Configuration Option
 

@@ -320,7 +320,9 @@ uint8_t plan_buffer_line(float *target, plan_line_data_t *pl_data)
   block->condition = pl_data->condition;
   block->spindle_speed = pl_data->spindle_speed;
   block->line_number = pl_data->line_number;
-
+  block->callbackFunction = pl_data->callbackFunction;
+  block->callbackContext = pl_data->callbackContext;
+  
   // Compute and store initial move distance data.
   int32_t target_steps[N_AXIS], position_steps[N_AXIS];
   float unit_vec[N_AXIS], delta_mm;

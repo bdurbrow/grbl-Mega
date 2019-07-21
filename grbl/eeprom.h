@@ -21,9 +21,9 @@
 #ifndef eeprom_h
 #define eeprom_h
 
-unsigned char eeprom_get_char(unsigned int addr);
-void eeprom_put_char(unsigned int addr, unsigned char new_value);
-void memcpy_to_eeprom_with_checksum(unsigned int destination, char *source, unsigned int size);
-int memcpy_from_eeprom_with_checksum(char *destination, unsigned int source, unsigned int size);
+uint8_t eeprom_get_char(uint16_t addr);
+void eeprom_put_char(uint16_t addr, uint8_t new_value);
+void memcpy_to_eeprom_with_checksum(uint16_t destination, void *source, uint16_t size);
+int16_t memcpy_from_eeprom_with_checksum(void *destination, uint16_t source, uint16_t size);
 
 #endif

@@ -29,14 +29,20 @@ void system_init()
   #else
     CONTROL_PORT |= CONTROL_MASK;   // Enable internal pull-up resistors. Normal high operation.
   #endif
-  CONTROL_PCMSK |= CONTROL_MASK;  // Enable specific pins of the Pin Change Interrupt
-  PCICR |= (1 << CONTROL_INT);   // Enable Pin Change Interrupt
+  
+  #ifdef USE_CONTROL_ISR
+    CONTROL_PCMSK |= CONTROL_MASK;  // Enable specific pins of the Pin Change Interrupt
+    PCICR |= (1 << CONTROL_INT);   // Enable Pin Change Interrupt
+  #endif
 }
 
 
 // Returns control pin state as a uint8 bitfield. Each bit indicates the input pin state, where
 // triggered is 1 and not triggered is 0. Invert mask is applied. Bitfield organization is
 // defined by the CONTROL_PIN_INDEX in the header file.
+// If CONTROL_CYCLE_START_PORT is defined, the cycle start input is on another port from the rest 
+// of the control inputs, and will be read seperatally.
+
 uint8_t system_control_get_state()
 {
   uint8_t control_state = 0;
@@ -44,12 +50,25 @@ uint8_t system_control_get_state()
   #ifdef INVERT_CONTROL_PIN_MASK
     pin ^= INVERT_CONTROL_PIN_MASK;
   #endif
+  
   if (pin) {
     if (bit_isfalse(pin,(1<<CONTROL_SAFETY_DOOR_BIT))) { control_state |= CONTROL_PIN_INDEX_SAFETY_DOOR; }
     if (bit_isfalse(pin,(1<<CONTROL_RESET_BIT))) { control_state |= CONTROL_PIN_INDEX_RESET; }
     if (bit_isfalse(pin,(1<<CONTROL_FEED_HOLD_BIT))) { control_state |= CONTROL_PIN_INDEX_FEED_HOLD; }
-    if (bit_isfalse(pin,(1<<CONTROL_CYCLE_START_BIT))) { control_state |= CONTROL_PIN_INDEX_CYCLE_START; }
+  
+    #ifndef CONTROL_CYCLE_START_PORT 
+      if (bit_isfalse(pin,(1<<CONTROL_CYCLE_START_BIT))) { control_state |= CONTROL_PIN_INDEX_CYCLE_START; }
+    #endif
   }
+
+  #ifdef CONTROL_CYCLE_START_PORT 
+    #ifdef INVERT_CONTROL_CYCLE_START
+      if(! ( CONTROL_CYCLE_START_PIN & (1<<CONTROL_CYCLE_START_BIT) )) { control_state |= CONTROL_PIN_INDEX_CYCLE_START; }
+    #else
+      if( CONTROL_CYCLE_START_PIN & (1<<CONTROL_CYCLE_START_BIT) ) { control_state |= CONTROL_PIN_INDEX_CYCLE_START; }
+    #endif // INVERT_CONTROL_CYCLE_START
+  #endif // CONTROL_CYCLE_START_PORT
+  
   return(control_state);
 }
 
@@ -58,22 +77,28 @@ uint8_t system_control_get_state()
 // only the realtime command execute variable to have the main program execute these when
 // its ready. This works exactly like the character-based realtime commands when picked off
 // directly from the incoming serial data stream.
-ISR(CONTROL_INT_vect)
-{
-  uint8_t pin = system_control_get_state();
-  if (pin) {
-    if (bit_istrue(pin,CONTROL_PIN_INDEX_RESET)) {
-      mc_reset();
-    } else if (bit_istrue(pin,CONTROL_PIN_INDEX_CYCLE_START)) {
-      bit_true(sys_rt_exec_state, EXEC_CYCLE_START);
-    } else if (bit_istrue(pin,CONTROL_PIN_INDEX_FEED_HOLD)) {
-      bit_true(sys_rt_exec_state, EXEC_FEED_HOLD); 
-    } else if (bit_istrue(pin,CONTROL_PIN_INDEX_SAFETY_DOOR)) {
-      bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
-    } 
+#ifdef USE_CONTROL_ISR
+  ISR(CONTROL_INT_vect)
+  {
+    uint8_t pin = system_control_get_state();
+    if (pin) {
+      if (bit_istrue(pin,CONTROL_PIN_INDEX_RESET)) {
+        mc_reset();
+      }
+      if (bit_istrue(pin,CONTROL_PIN_INDEX_CYCLE_START)) {
+        bit_true(sys_rt_exec_state, EXEC_CYCLE_START);
+      }
+      #ifndef ENABLE_SAFETY_DOOR_INPUT_PIN
+        if (bit_istrue(pin,CONTROL_PIN_INDEX_FEED_HOLD)) {
+          bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+      #else
+        if (bit_istrue(pin,CONTROL_PIN_INDEX_SAFETY_DOOR)) {
+          bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
+      #endif
+      }
+    }
   }
-}
-
+#endif // USE_CONTROL_ISR
 
 // Returns if safety door is ajar(T) or closed(F), based on pin state.
 uint8_t system_check_safety_door_ajar()
@@ -216,6 +241,9 @@ uint8_t system_execute_line(char *line)
             #endif
             #ifdef ENABLE_RESTORE_EEPROM_WIPE_ALL
               case '*': settings_restore(SETTINGS_RESTORE_ALL); break;
+            #endif
+            #ifdef ENABLE_RESTORE_EEPROM_CLEAR_TOOL_DATA
+              case 'T': settings_restore(SETTINGS_RESTORE_TOOL_DATA); break;
             #endif
             default: return(STATUS_INVALID_STATEMENT);
           }

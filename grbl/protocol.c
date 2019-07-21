@@ -21,6 +21,11 @@
 
 #include "grbl.h"
 
+#ifdef USE_SD_SUPPORT
+  #include "SDSupport.h"  
+#endif
+
+
 // Define line flags. Includes comment type tracking and line overflow detection.
 #define LINE_FLAG_OVERFLOW bit(0)
 #define LINE_FLAG_COMMENT_PARENTHESES bit(1)
@@ -150,6 +155,36 @@ void protocol_main_loop()
 
       }
     }
+    
+    #ifdef USE_UI_SUPPORT
+      if(UILineBufferState == UILineBufferState_ReadyForExecution)
+      {
+        UILineBufferState = UILineBufferState_Busy;
+        if(UILineBuffer[0] == '$')
+          system_execute_line(UILineBuffer);
+        else
+          gc_execute_line(UILineBuffer);
+        UILineBufferState = 0;
+        UIBufferExecuted();
+      }
+    #endif
+    
+    #ifdef USE_SD_SUPPORT
+      if(SD_state == SD_state_Open)
+      {
+        char SDLine[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
+        int16_t result = SD_readGCodeLine(SDLine, LINE_BUFFER_SIZE);
+        if(result == -1)
+        {
+          SDParseError();
+        }
+        else
+        {
+          if(result)
+            if(gc_execute_line(SDLine)) SDParseError();
+        }
+      }
+    #endif
 
     // If there are no more characters in the serial read buffer to be processed and executed,
     // this indicates that g-code streaming has either filled the planner buffer or has
@@ -210,6 +245,8 @@ void protocol_auto_cycle_start()
 void protocol_execute_realtime()
 {
   protocol_exec_rt_system();
+  UITask();
+  gxi_loop();
   if (sys.suspend) { protocol_exec_rt_suspend(); }
 }
 
@@ -627,7 +664,12 @@ static void protocol_exec_rt_suspend()
             spindle_set_state(SPINDLE_DISABLE,0.0); // De-energize
             coolant_set_state(COOLANT_DISABLE); // De-energize
             st_go_idle(); // Disable steppers
-            while (!(sys.abort)) { protocol_exec_rt_system(); } // Do nothing until reset.
+            while (!(sys.abort))
+            {
+              protocol_exec_rt_system();
+              UITask();
+              gxi_loop();
+            } // Do nothing until reset.
             return; // Abort received. Return to re-initialize.
           }    
           
@@ -761,5 +803,7 @@ static void protocol_exec_rt_suspend()
 
     protocol_exec_rt_system();
 
+    UITask();
+    gxi_loop();
   }
 }

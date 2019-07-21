@@ -25,6 +25,9 @@
 #ifndef cpu_map_h
 #define cpu_map_h
 
+#define PIN_NONE  (*((uint8_t *)0xFFFF))
+#define DDR_NONE  (*((uint8_t *)0xFFFF))
+#define PORT_NONE (*((uint8_t *)0xFFFF))
 
 #ifdef CPU_MAP_2560_INITIAL // (Arduino Mega 2560) Working @EliteEng
 
@@ -189,29 +192,68 @@
   #define STEPPER_DISABLE_PIN(i) _PIN(STEPPER_DISABLE_PORT_##i)
 
   // Define homing/hard limit switch input pins and limit interrupt vectors. 
-  #define MIN_LIMIT_PORT_0 E
-  #define MIN_LIMIT_PORT_1 J
-  #define MIN_LIMIT_PORT_2 D
-  #define MIN_LIMIT_BIT_0 5 // X Limit Min - Pin D3
-  #define MIN_LIMIT_BIT_1 1 // Y Limit Min - Pin D14
-  #define MIN_LIMIT_BIT_2 3 // Z Limit Min - Pin D18
-  #define _MIN_LIMIT_BIT(i) MIN_LIMIT_BIT_##i
-  #define MIN_LIMIT_BIT(i) _MIN_LIMIT_BIT(i)
-  #define MIN_LIMIT_DDR(i) _DDR(MIN_LIMIT_PORT_##i)
-  #define MIN_LIMIT_PORT(i) _PORT(MIN_LIMIT_PORT_##i)
-  #define MIN_LIMIT_PIN(i) _PIN(MIN_LIMIT_PORT_##i)
+  #ifndef USE_UI_ENCODER_B_ISR
+  
+    #define MIN_LIMIT_PORT_0 E
+    #define MIN_LIMIT_PORT_1 J
+    #define MIN_LIMIT_PORT_2 D
+    #define MIN_LIMIT_BIT_0 5 // X Limit Min - Pin D3
+    #define MIN_LIMIT_BIT_1 1 // Y Limit Min - Pin D14
+    #define MIN_LIMIT_BIT_2 3 // Z Limit Min - Pin D18
+    #define _MIN_LIMIT_BIT(i) MIN_LIMIT_BIT_##i
+    #define MIN_LIMIT_BIT(i) _MIN_LIMIT_BIT(i)
+    #define MIN_LIMIT_DDR(i) _DDR(MIN_LIMIT_PORT_##i)
+    #define MIN_LIMIT_PORT(i) _PORT(MIN_LIMIT_PORT_##i)
+    #define MIN_LIMIT_PIN(i) _PIN(MIN_LIMIT_PORT_##i)
 
-  #define MAX_LIMIT_PORT_0 E
-  #define MAX_LIMIT_PORT_1 J
-  #define MAX_LIMIT_PORT_2 D
-  #define MAX_LIMIT_BIT_0 4 // X Limit Max - Pin D2
-  #define MAX_LIMIT_BIT_1 0 // Y Limit Max - Pin D15
-  #define MAX_LIMIT_BIT_2 2 // Z Limit Max - Pin D19
-  #define _MAX_LIMIT_BIT(i) MAX_LIMIT_BIT_##i
-  #define MAX_LIMIT_BIT(i) _MAX_LIMIT_BIT(i)
-  #define MAX_LIMIT_DDR(i) _DDR(MAX_LIMIT_PORT_##i)
-  #define MAX_LIMIT_PORT(i) _PORT(MAX_LIMIT_PORT_##i)
-  #define MAX_LIMIT_PIN(i) _PIN(MAX_LIMIT_PORT_##i)
+    #define MAX_LIMIT_PORT_0 E
+    #define MAX_LIMIT_PORT_1 J
+    #define MAX_LIMIT_PORT_2 D
+    #define MAX_LIMIT_BIT_0 4 // X Limit Max - Pin D2
+    #define MAX_LIMIT_BIT_1 0 // Y Limit Max - Pin D15
+    #define MAX_LIMIT_BIT_2 2 // Z Limit Max - Pin D19
+    #define _MAX_LIMIT_BIT(i) MAX_LIMIT_BIT_##i
+    #define MAX_LIMIT_BIT(i) _MAX_LIMIT_BIT(i)
+    #define MAX_LIMIT_DDR(i) _DDR(MAX_LIMIT_PORT_##i)
+    #define MAX_LIMIT_PORT(i) _PORT(MAX_LIMIT_PORT_##i)
+    #define MAX_LIMIT_PIN(i) _PIN(MAX_LIMIT_PORT_##i)
+
+  #else
+    
+    // In RAMPS, the pins marked for X min and max limit inputs are needed for
+    // UI Encoder B because they have interrupt capability. So, the inputs are
+    // re-assigned as follows:
+    // RAMPS Label:       GRBL Function:
+    //  Y-                X Minimum Limit Switch
+    //  Y                 Y Minimum Limit Switch
+    //  Z-                Unused
+    //  Z                 Z Maximum Limit Switch
+    
+    #define MIN_LIMIT_PORT_0 J
+    #define MIN_LIMIT_PORT_1 J
+    #define MIN_LIMIT_PORT_2 _NONE
+    #define MIN_LIMIT_BIT_0 1 // X Limit Min - Pin D14
+    #define MIN_LIMIT_BIT_1 0 // Y Limit Min - Pin D15
+    #define MIN_LIMIT_BIT_2 0 // Z Limit Min - Unused
+    #define _MIN_LIMIT_BIT(i) MIN_LIMIT_BIT_##i
+    #define MIN_LIMIT_BIT(i) _MIN_LIMIT_BIT(i)
+    #define MIN_LIMIT_DDR(i) _DDR(MIN_LIMIT_PORT_##i)
+    #define MIN_LIMIT_PORT(i) _PORT(MIN_LIMIT_PORT_##i)
+    #define MIN_LIMIT_PIN(i) _PIN(MIN_LIMIT_PORT_##i)
+
+    #define MAX_LIMIT_PORT_0 _NONE
+    #define MAX_LIMIT_PORT_1 _NONE
+    #define MAX_LIMIT_PORT_2 D
+    #define MAX_LIMIT_BIT_0 0 // X Limit Max - Unused
+    #define MAX_LIMIT_BIT_1 0 // Y Limit Max - Unused
+    #define MAX_LIMIT_BIT_2 2 // Z Limit Max - Pin D19
+    #define _MAX_LIMIT_BIT(i) MAX_LIMIT_BIT_##i
+    #define MAX_LIMIT_BIT(i) _MAX_LIMIT_BIT(i)
+    #define MAX_LIMIT_DDR(i) _DDR(MAX_LIMIT_PORT_##i)
+    #define MAX_LIMIT_PORT(i) _PORT(MAX_LIMIT_PORT_##i)
+    #define MAX_LIMIT_PIN(i) _PIN(MAX_LIMIT_PORT_##i)
+
+  #endif
 
   //  #define LIMIT_INT       PCIE0  // Pin change interrupt enable pin
   //  #define LIMIT_INT_vect  PCINT0_vect 
@@ -235,19 +277,42 @@
   #define COOLANT_MIST_PORT   PORTH
   #define COOLANT_MIST_BIT    6 // MEGA2560 Digital Pin 9 - Ramps 1.4 12v output
 
-  // Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
-  // NOTE: All CONTROLs pins must be on the same port and not on a port with other input pins (limits).
-  #define CONTROL_DDR       DDRK
-  #define CONTROL_PIN       PINK
-  #define CONTROL_PORT      PORTK
-  #define CONTROL_RESET_BIT         1  // Pin A9 - RAMPS Aux 2 Port
-  #define CONTROL_FEED_HOLD_BIT     2  // Pin A10 - RAMPS Aux 2 Port
-  #define CONTROL_CYCLE_START_BIT   3  // Pin A11 - RAMPS Aux 2 Port
-  #define CONTROL_SAFETY_DOOR_BIT   4  // Pin A12 - RAMPS Aux 2 Port
-  #define CONTROL_INT       PCIE2  // Pin change interrupt enable pin
-  #define CONTROL_INT_vect  PCINT2_vect
-  #define CONTROL_PCMSK     PCMSK2 // Pin change interrupt register
-  #define CONTROL_MASK      ((1<<CONTROL_RESET_BIT)|(1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_CYCLE_START_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT))
+  #ifndef USE_UI_SUPPORT
+  
+    // Define user-control CONTROLs (cycle start, reset, feed hold) input pins.
+    // NOTE: All CONTROLs pins must be on the same port and not on a port with other input pins (limits).
+    #define CONTROL_DDR       DDRK
+    #define CONTROL_PIN       PINK
+    #define CONTROL_PORT      PORTK
+    #define CONTROL_RESET_BIT         1  // Pin A9 - RAMPS Aux 2 Port
+    #define CONTROL_FEED_HOLD_BIT     2  // Pin A10 - RAMPS Aux 2 Port
+    #define CONTROL_CYCLE_START_BIT   3  // Pin A11 - RAMPS Aux 2 Port
+    #define CONTROL_SAFETY_DOOR_BIT   4  // Pin A12 - RAMPS Aux 2 Port
+    #define CONTROL_INT       PCIE2  // Pin change interrupt enable pin
+    #define CONTROL_INT_vect  PCINT2_vect
+    #define CONTROL_PCMSK     PCMSK2 // Pin change interrupt register
+    #define CONTROL_MASK      ((1<<CONTROL_RESET_BIT)|(1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_CYCLE_START_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT))
+    #define USE_CONTROL_ISR
+    
+  #else // USE_UI_SUPPORT
+  
+    // UI Support requires a matrix keypad, which is by default setup on the Aux 2 port of a RAMPS board.
+    // Consequentally, the control inputs need to be moved to other pins... by default, unused pins on the Aux 4 header of the RAMPS board.
+    // Also, these pins don't have an interrupt associated with them, so they are monitored in a polling loop by UITask().
+    #define CONTROL_DDR       DDRL
+    #define CONTROL_PIN       PINL
+    #define CONTROL_PORT      PORTL
+    #define CONTROL_RESET_BIT         2  // Pin D47 - RAMPS Aux 4 Port
+    #define CONTROL_FEED_HOLD_BIT     4  // Pin D45 - RAMPS Aux 4 Port
+    #define CONTROL_SAFETY_DOOR_BIT   6  // Pin D43 - RAMPS Aux 4 Port
+    #define CONTROL_MASK      ((1<<CONTROL_RESET_BIT)|(1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT))
+
+    #define CONTROL_CYCLE_START_DDR       DDRC
+    #define CONTROL_CYCLE_START_PIN       PINC
+    #define CONTROL_CYCLE_START_PORT      PORTC
+    #define CONTROL_CYCLE_START_BIT       5 // Pin D32 - RAMPS Aux 4 Port
+
+  #endif // USE_UI_SUPPORT
 
   // Define probe switch input pin.
   #define PROBE_DDR       DDRK
@@ -260,7 +325,7 @@
   // Set Timer up to use TIMER4B which is attached to Digital Pin 8 - Ramps 1.4 12v output with heat sink
   #define SPINDLE_PWM_MAX_VALUE     1024.0 // Translates to about 1.9 kHz PWM frequency at 1/8 prescaler
   #ifndef SPINDLE_PWM_MIN_VALUE
-  #define SPINDLE_PWM_MIN_VALUE   1   // Must be greater than zero.
+  #define SPINDLE_PWM_MIN_VALUE     1   // Must be greater than zero.
   #endif
   #define SPINDLE_PWM_OFF_VALUE     0
   #define SPINDLE_PWM_RANGE         (SPINDLE_PWM_MAX_VALUE-SPINDLE_PWM_MIN_VALUE)
@@ -282,6 +347,69 @@
   #define SPINDLE_PWM_PORT  PORTH
   #define SPINDLE_PWM_BIT   5 // MEGA2560 Digital Pin 8 
 
+  // If enabled, define the pin configuration for the SD interface.
+  #ifdef USE_SD_SUPPORT
+    #define SD_CHIPSELECT 53
+    #define SD_CARDDETECT 49 //[RAMPS14-SMART-ADAPTER]
+  #endif
+  
+  #ifdef USE_UI_SUPPORT
+  
+    #define BEEPER 37 //[RAMPS14-SMART-ADAPTER]
+  
+  // Define the pin configuration for the LCD interface.
+    #define LCD_PIN_RS 16 //[RAMPS14-SMART-ADAPTER]
+    #define LCD_PIN_EN 17 //[RAMPS14-SMART-ADAPTER]
+    #define LCD_PIN_D4 23 //[RAMPS14-SMART-ADAPTER]
+    #define LCD_PIN_D5 25 //[RAMPS14-SMART-ADAPTER]
+    #define LCD_PIN_D6 27 //[RAMPS14-SMART-ADAPTER]
+    #define LCD_PIN_D7 29 //[RAMPS14-SMART-ADAPTER]
+    
+    // The command execution time for the LCD, in microseconds.
+    // If your LCD is not working, try increasing this value.
+    #define LCD_SEND_DELAY  50
+        
+  // Define the pin configuration for the UI Rotary Encoder interface.
+    #define UI_ENCODER_A_PINBTN1 35 //[RAMPS14-SMART-ADAPTER]
+    #define UI_ENCODER_A_PINBTN2 41 //[RAMPS14-SMART-ADAPTER]
+    #define UI_ENCODER_A_PINBTN1_ENABLE_PULLUP
+    #define UI_ENCODER_A_PINBTN2_ENABLE_PULLUP
+    #define UI_ENCODER_A_PINBTN1_ACTIVE_LOW
+    #define UI_ENCODER_A_PINBTN2_ACTIVE_LOW
+    
+    
+    //encoder pins
+    // Encoder modes:
+    // 1 = four states per detent, normally high.
+    // 2 = four states per detent, normally low.
+    // 3 = one state per detent.
+     
+    // Typically, UI Encoder A is a mechanical encoder with 4 states per detent; normally high.
+    #define UI_ENCODER_A_MODE 1
+    #define UI_ENCODER_A_PIN1 33 //[RAMPS14-SMART-ADAPTER]
+    #define UI_ENCODER_A_PIN2 31 //[RAMPS14-SMART-ADAPTER]
+    #define UI_ENCODER_A_PIN1_ENABLE_PULLUP
+    #define UI_ENCODER_A_PIN2_ENABLE_PULLUP
+    
+    #define UI_ENCODER_B_MODE 2
+    #define UI_ENCODER_B_PIN1 2 //[RAMPS 1.4]
+    #define UI_ENCODER_B_PIN2 3 //[RAMPS 1.4]
+    // Typically, encoder B is used with a TTL MPG handwheel... which should not have the pullups enabled.
+    //#define UI_ENCODER_B_PIN1_ENABLE_PULLUP
+    //#define UI_ENCODER_B_PIN2_ENABLE_PULLUP
+    
+  // Define the pin configuration for the Matrix Keypad interface.
+    #define UI_MATRIX_KEYPAD_PIN_R1 65
+    #define UI_MATRIX_KEYPAD_PIN_R2 42
+    #define UI_MATRIX_KEYPAD_PIN_R3 40
+    #define UI_MATRIX_KEYPAD_PIN_R4 63
+    #define UI_MATRIX_KEYPAD_PIN_C1 59
+    #define UI_MATRIX_KEYPAD_PIN_C2 64
+    #define UI_MATRIX_KEYPAD_PIN_C3 44
+    #define UI_MATRIX_KEYPAD_PIN_C4 66
+    
+  #endif // USE_UI_SUPPORT
+  
 #endif
 /* 
 #ifdef CPU_MAP_CUSTOM_PROC

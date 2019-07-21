@@ -34,27 +34,27 @@ void limits_init()
 {
   #ifdef DEFAULTS_RAMPS_BOARD
     // Set as input pins
-    MIN_LIMIT_DDR(0) &= ~(1<<MIN_LIMIT_BIT(0));
-    MIN_LIMIT_DDR(1) &= ~(1<<MIN_LIMIT_BIT(1));
-    MIN_LIMIT_DDR(2) &= ~(1<<MIN_LIMIT_BIT(2));
-    MAX_LIMIT_DDR(0) &= ~(1<<MAX_LIMIT_BIT(0));
-    MAX_LIMIT_DDR(1) &= ~(1<<MAX_LIMIT_BIT(1));
-    MAX_LIMIT_DDR(2) &= ~(1<<MAX_LIMIT_BIT(2));
+    if(&MIN_LIMIT_DDR(0) != &DDR_NONE) MIN_LIMIT_DDR(0) &= ~(1<<MIN_LIMIT_BIT(0));
+    if(&MIN_LIMIT_DDR(1) != &DDR_NONE) MIN_LIMIT_DDR(1) &= ~(1<<MIN_LIMIT_BIT(1));
+    if(&MIN_LIMIT_DDR(2) != &DDR_NONE) MIN_LIMIT_DDR(2) &= ~(1<<MIN_LIMIT_BIT(2));
+    if(&MAX_LIMIT_DDR(0) != &DDR_NONE) MAX_LIMIT_DDR(0) &= ~(1<<MAX_LIMIT_BIT(0));
+    if(&MAX_LIMIT_DDR(1) != &DDR_NONE) MAX_LIMIT_DDR(1) &= ~(1<<MAX_LIMIT_BIT(1));
+    if(&MAX_LIMIT_DDR(2) != &DDR_NONE) MAX_LIMIT_DDR(2) &= ~(1<<MAX_LIMIT_BIT(2));
 
     #ifdef DISABLE_LIMIT_PIN_PULL_UP
-      MIN_LIMIT_PORT(0) &= ~(1<<MIN_LIMIT_BIT(0)); // Normal low operation. Requires external pull-down.
-      MIN_LIMIT_PORT(1) &= ~(1<<MIN_LIMIT_BIT(1)); // Normal low operation. Requires external pull-down.
-      MIN_LIMIT_PORT(2) &= ~(1<<MIN_LIMIT_BIT(2)); // Normal low operation. Requires external pull-down.
-      MAX_LIMIT_PORT(0) &= ~(1<<MAX_LIMIT_BIT(0)); // Normal low operation. Requires external pull-down.
-      MAX_LIMIT_PORT(1) &= ~(1<<MAX_LIMIT_BIT(1)); // Normal low operation. Requires external pull-down.
-      MAX_LIMIT_PORT(2) &= ~(1<<MAX_LIMIT_BIT(2)); // Normal low operation. Requires external pull-down.
+      if(&MIN_LIMIT_PORT(0) != &PORT_NONE) MIN_LIMIT_PORT(0) &= ~(1<<MIN_LIMIT_BIT(0)); // Normal low operation. Requires external pull-down.
+      if(&MIN_LIMIT_PORT(1) != &PORT_NONE) MIN_LIMIT_PORT(1) &= ~(1<<MIN_LIMIT_BIT(1)); // Normal low operation. Requires external pull-down.
+      if(&MIN_LIMIT_PORT(2) != &PORT_NONE) MIN_LIMIT_PORT(2) &= ~(1<<MIN_LIMIT_BIT(2)); // Normal low operation. Requires external pull-down.
+      if(&MAX_LIMIT_PORT(0) != &PORT_NONE) MAX_LIMIT_PORT(0) &= ~(1<<MAX_LIMIT_BIT(0)); // Normal low operation. Requires external pull-down.
+      if(&MAX_LIMIT_PORT(1) != &PORT_NONE) MAX_LIMIT_PORT(1) &= ~(1<<MAX_LIMIT_BIT(1)); // Normal low operation. Requires external pull-down.
+      if(&MAX_LIMIT_PORT(2) != &PORT_NONE) MAX_LIMIT_PORT(2) &= ~(1<<MAX_LIMIT_BIT(2)); // Normal low operation. Requires external pull-down.
     #else
-      MIN_LIMIT_PORT(0) |= (1<<MIN_LIMIT_BIT(0));  // Enable internal pull-up resistors. Normal high operation.
-      MIN_LIMIT_PORT(1) |= (1<<MIN_LIMIT_BIT(1));  // Enable internal pull-up resistors. Normal high operation.
-      MIN_LIMIT_PORT(2) |= (1<<MIN_LIMIT_BIT(2));  // Enable internal pull-up resistors. Normal high operation.
-      MAX_LIMIT_PORT(0) |= (1<<MAX_LIMIT_BIT(0));  // Enable internal pull-up resistors. Normal high operation.
-      MAX_LIMIT_PORT(1) |= (1<<MAX_LIMIT_BIT(1));  // Enable internal pull-up resistors. Normal high operation.
-      MAX_LIMIT_PORT(2) |= (1<<MAX_LIMIT_BIT(2));  // Enable internal pull-up resistors. Normal high operation.
+      if(&MIN_LIMIT_PORT(0) != &PORT_NONE) MIN_LIMIT_PORT(0) |= (1<<MIN_LIMIT_BIT(0));  // Enable internal pull-up resistors. Normal high operation.
+      if(&MIN_LIMIT_PORT(1) != &PORT_NONE) MIN_LIMIT_PORT(1) |= (1<<MIN_LIMIT_BIT(1));  // Enable internal pull-up resistors. Normal high operation.
+      if(&MIN_LIMIT_PORT(2) != &PORT_NONE) MIN_LIMIT_PORT(2) |= (1<<MIN_LIMIT_BIT(2));  // Enable internal pull-up resistors. Normal high operation.
+      if(&MAX_LIMIT_PORT(0) != &PORT_NONE) MAX_LIMIT_PORT(0) |= (1<<MAX_LIMIT_BIT(0));  // Enable internal pull-up resistors. Normal high operation.
+      if(&MAX_LIMIT_PORT(1) != &PORT_NONE) MAX_LIMIT_PORT(1) |= (1<<MAX_LIMIT_BIT(1));  // Enable internal pull-up resistors. Normal high operation.
+      if(&MAX_LIMIT_PORT(2) != &PORT_NONE) MAX_LIMIT_PORT(2) |= (1<<MAX_LIMIT_BIT(2));  // Enable internal pull-up resistors. Normal high operation.
     #endif
     #ifndef DISABLE_HW_LIMITS
       if (bit_istrue(settings.flags,BITFLAG_HARD_LIMIT_ENABLE)) {
@@ -127,22 +127,26 @@ uint8_t limits_get_state()
       #error "INVERT_LIMIT_PIN_MASK is not implemented"
     #endif
     for (idx=0; idx<N_AXIS; idx++) {
-      pin = *max_limit_pins[idx] & (1<<max_limit_bits[idx]);
-      pin = !!pin;
-      if (bit_isfalse(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) { pin = !pin; }
-      #ifdef INVERT_MAX_LIMIT_PIN_MASK
-        if (bit_istrue(INVERT_MAX_LIMIT_PIN_MASK, bit(idx))) { pin = !pin; }
-      #endif
-      if (pin)
-        limit_state |= (1 << idx);
-      pin = *min_limit_pins[idx] & (1<<min_limit_bits[idx]);
-      pin = !!pin;
-      if (bit_isfalse(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) { pin = !pin; }
-      #ifdef INVERT_MIN_LIMIT_PIN_MASK
-        if (bit_istrue(INVERT_MIN_LIMIT_PIN_MASK, bit(idx))) { pin = !pin; }
-      #endif
-      if (pin)
-        limit_state |= (1 << idx);
+      if(max_limit_pins[idx] != &PIN_NONE) {
+        pin = *max_limit_pins[idx] & (1<<max_limit_bits[idx]);
+        pin = !!pin;
+        if (bit_isfalse(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) { pin = !pin; }
+        #ifdef INVERT_MAX_LIMIT_PIN_MASK
+          if (bit_istrue(INVERT_MAX_LIMIT_PIN_MASK, bit(idx))) { pin = !pin; }
+        #endif
+        if (pin)
+          limit_state |= (1 << idx);
+      }
+      if(min_limit_pins[idx] != &PIN_NONE) {
+        pin = *min_limit_pins[idx] & (1<<min_limit_bits[idx]);
+        pin = !!pin;
+        if (bit_isfalse(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) { pin = !pin; }
+        #ifdef INVERT_MIN_LIMIT_PIN_MASK
+          if (bit_istrue(INVERT_MIN_LIMIT_PIN_MASK, bit(idx))) { pin = !pin; }
+        #endif
+        if (pin)
+          limit_state |= (1 << idx);
+      }
     } 
     return(limit_state);
   #else

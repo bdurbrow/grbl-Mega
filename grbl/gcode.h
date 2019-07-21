@@ -207,6 +207,7 @@ typedef struct {
   float s;         // Spindle speed
   uint8_t t;       // Tool selection
   float xyz[3];    // X,Y,Z Translational axes
+  uint8_t gxi_mcode;
 } gc_values_t;
 
 
@@ -229,12 +230,14 @@ typedef struct {
 extern parser_state_t gc_state;
 
 
-typedef struct {
+struct parser_block_t {
   uint8_t non_modal_command;
   gc_modal_t modal;
   gc_values_t values;
-} parser_block_t;
-
+  gxi_callback_t callbackFunction;
+  gxi_callback_context_t callbackContext;
+};
+typedef struct parser_block_t parser_block_t;
 
 // Initialize the parser
 void gc_init();
