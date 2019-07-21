@@ -1,8 +1,8 @@
-#What this is:
+# What this is:
 
 This is a fork of the version of grbl for the ATMega2560; it adds support for running standalone on common 3D printer hardware.
 
-#WARNING: PRE-BETA SOFTWARE!
+# WARNING: PRE-BETA SOFTWARE!
 
 This is currently pre-beta. It probably has bugs. It might not work for you. It might crash your CNC. It might turn your dog into a geranium. I really don't know. Use at your own risk.
 
@@ -15,7 +15,7 @@ https://github.com/gnea/grbl-Mega/issues/77
 
 
 
-##Hardware requirements as distributed:
+## Hardware requirements as distributed:
 
 * A suitable SD card. (Anything that works with other Arduino SD software/hardware - like a 3D printer - should work... I'm using SD drivers originally sourced from the Arduino codebase). Make sure you format it correctly, though, with the tool from the SD Association (https://www.sdcard.org/downloads/formatter_4/index.html). I've had mixed luck using the built-in formatting tools provided by the OS (both OS X and Windows) on SD cards... sometimes it works, sometimes it doesn't. Using the tool from sdcard.org seems to avoid this issue.
 * A mega2560.
@@ -32,7 +32,7 @@ Other hardware may be compatible, but has not been tested.
 Also, expect to have to check and modify config.h and cpu_map.h for your specific hardware; not all options are turned on in the as-downloaded setup.
 
 
-##Documentation:
+## Documentation:
 
 ... needs to be written. For right now, there's some information in the UI Support folder, and also check out the config.h and cpu_map.h files for machine-specific setup.
 
@@ -40,7 +40,7 @@ This image (from Reprap.org) may be helpful in figuring out what I/O pin is what
 https://reprap.org/mediawiki/images/f/f6/RAMPS1.4schematic.png
 
 
-##Compiling:
+## Compiling:
 The makefile is out-of-date. Use the Arduino IDE to compile this, in the same manner as the standard grbl distribution.
 https://github.com/gnea/grbl/wiki/Compiling-Grbl
 
