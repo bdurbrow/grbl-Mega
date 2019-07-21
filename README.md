@@ -1,6 +1,52 @@
+#What this is:
+
+This is a fork of the version of grbl for the ATMega2560; it adds support for running standalone on common 3D printer hardware.
+
+#WARNING: PRE-BETA SOFTWARE!
+
+This is currently pre-beta. It probably has bugs. It might not work for you. It might crash your CNC. It might turn your dog into a geranium. I really don't know. Use at your own risk.
+
+
+
+
+The original development thread can be found here:
+
+https://github.com/gnea/grbl-Mega/issues/77
+
+
+
+##Hardware requirements as distributed:
+
+* A suitable SD card. (Anything that works with other Arduino SD software/hardware - like a 3D printer - should work... I'm using SD drivers originally sourced from the Arduino codebase). Make sure you format it correctly, though, with the tool from the SD Association (https://www.sdcard.org/downloads/formatter_4/index.html). I've had mixed luck using the built-in formatting tools provided by the OS (both OS X and Windows) on SD cards... sometimes it works, sometimes it doesn't. Using the tool from sdcard.org seems to avoid this issue.
+* A mega2560.
+* A RAMPS 1.4 w/ stepper drivers. Other RAMPS versions might work, but have not been tested.
+* A RepRap Discount Smart Controller LCD interface w/ Smart Adapter (the one with the 20x4 character LCD, rotary encoder w/push button, extra push button and SD card slot; **NOT** the ones with a graphic LCD, this firmware doesn't - and won't - support those).
+* A 4x4 matrix keypad (there are inexpensive membrane-style ones available on eBay, search for "Arduino keypad 4x4" and pick one - or 10 - that's cheap; and if you get the same one that I got, I've got a PDF file that can be printed out and glued over the keypad to show what the key functions are)
+* A suitable MPG handwheel. (The ones I'm using are 100ppr, 60mm handwheels, and can be found on eBay by searching for "CNC MPG 5v 60mm"; at the moment they are under $20usd).
+* Switches for Cycle Start and Feed Hold (I'm using some arcade-style push-buttons, again sourced from eBay) and 5K pots for feed rate override and spindle override. These components will require soldering, so make sure you've got a suitable soldering station (temperature controlled iron, "helping hands" to hold stuff, magnification, good solder and flux, etc).
+* Suitable cabling to attach everything. (I ordered some long male-to-female 0.100in "DuPont" style hookup wires, and some 1x2, 1x3, 1x8, 2x4, and 2x5 "DuPont" style shrouds from eBay; also I had on hand some suitable ring terminals for hooking up the MPG handwheel).
+* And, of course, your CNC machine itself. 😁
+
+Other hardware may be compatible, but has not been tested.
+
+Also, expect to have to check and modify config.h and cpu_map.h for your specific hardware; not all options are turned on in the as-downloaded setup.
+
+
+##Documentation:
+
+... needs to be written. For right now, there's some information in the UI Support folder, and also check out the config.h and cpu_map.h files for machine-specific setup.
+
+This image (from Reprap.org) may be helpful in figuring out what I/O pin is what:
+https://reprap.org/mediawiki/images/f/f6/RAMPS1.4schematic.png
+
+
+##Compiling:
+The makefile is out-of-date. Use the Arduino IDE to compile this, in the same manner as the standard grbl distribution.
+https://github.com/gnea/grbl/wiki/Compiling-Grbl
+
+
 ![GitHub Logo](https://github.com/gnea/gnea-Media/blob/master/Grbl%20Logo/Grbl%20Logo%20250px.png?raw=true)
 ***
-_Click the `Release` tab to download pre-compiled `.hex` files or just [click here](https://github.com/gnea/grbl-Mega/releases)_
 ***
 
 Grbl is a no-compromise, high performance, low cost alternative to parallel-port-based motion control for CNC milling. This version of Grbl runs on an Arduino Mega2560 only.
