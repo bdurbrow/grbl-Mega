@@ -11,6 +11,7 @@ File gcode_file;
 
 SD_Directory_Entry SD_directory[SD_DIRECTORY_SIZE];
 uint8_t SD_directory_count = 0;
+int32_t SD_line_count = 0;
 
 extern "C"
 {
@@ -63,6 +64,7 @@ extern "C"
 
   bool SD_open_filename(char *filename)
   {
+    SD_line_count = 0;
     if(gcode_file) gcode_file.close();
     gcode_file = SD.open(filename);
     if(gcode_file)
@@ -81,6 +83,7 @@ extern "C"
   
   bool SD_open_grbltemp(const char *displayName)
   {
+    SD_line_count = 0;
     if(SD_state == SD_state_Unmounted) SD_mount_card();
   
     if(gcode_file) gcode_file.close();
@@ -130,6 +133,7 @@ extern "C"
   int16_t SD_readGCodeLine(void* buf, uint16_t nbyte)
   {
     int16_t result = gcode_file.readGCodeLine(buf, nbyte);
+    SD_line_count++;
     if(result) return result;
     
     protocol_buffer_synchronize();

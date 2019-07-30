@@ -150,8 +150,7 @@
   #define PIN(pin) PIN##pin
   #define _PIN(pin) PIN(pin)
   
-  // Define step pulse output pins.
-  
+  // Define step pulse output pins.  
   #define STEP_PORT_0 F
   #define STEP_PORT_1 F
   #define STEP_PORT_2 L
@@ -165,6 +164,36 @@
   #define STEP_PORT(i) _STEP_PORT(i)
   #define STEP_PIN(i) _PIN(STEP_PORT_##i)
 
+  // Define Cloned Axis
+  #define CLONE_X_AXIS
+  #define CLONED_X_AXIS_DISABLE_PORT A
+  #define CLONED_X_AXIS_DISABLE_BIT 2
+  #define CLONED_X_AXIS_STEP_PORT A
+  #define CLONED_X_AXIS_STEP_BIT 4
+  #define CLONED_X_AXIS_DIRECTION_PORT A
+  #define CLONED_X_AXIS_DIRECTION_BIT 6
+  
+  #define CLONE_Y_AXIS
+  #define CLONED_Y_AXIS_DISABLE_PORT C
+  #define CLONED_Y_AXIS_DISABLE_BIT 7
+  #define CLONED_Y_AXIS_STEP_PORT C
+  #define CLONED_Y_AXIS_STEP_BIT 1
+  #define CLONED_Y_AXIS_DIRECTION_PORT C
+  #define CLONED_Y_AXIS_DIRECTION_BIT 3
+  
+  #define _CLONED_AXIS_DISABLE_PORT(axis) CLONED_##axis##_AXIS_DISABLE_PORT
+  #define CLONED_AXIS_DISABLE_PORT(axis) _PORT(_CLONED_AXIS_DISABLE_PORT(axis))  
+  #define CLONED_AXIS_DISABLE_DDR(axis) _DDR(_CLONED_AXIS_DISABLE_PORT(axis))
+  #define CLONED_AXIS_DISABLE_BIT(axis) CLONED_##axis##_AXIS_DISABLE_BIT
+  #define _CLONED_AXIS_STEP_PORT(axis) CLONED_##axis##_AXIS_STEP_PORT
+  #define CLONED_AXIS_STEP_PORT(axis) _PORT(_CLONED_AXIS_STEP_PORT(axis))
+  #define CLONED_AXIS_STEP_DDR(axis) _DDR(_CLONED_AXIS_STEP_PORT(axis))
+  #define CLONED_AXIS_STEP_BIT(axis) CLONED_##axis##_AXIS_STEP_BIT
+  #define _CLONED_AXIS_DIRECTION_PORT(axis) CLONED_##axis##_AXIS_DIRECTION_PORT
+  #define CLONED_AXIS_DIRECTION_PORT(axis) _PORT(_CLONED_AXIS_DIRECTION_PORT(axis))
+  #define CLONED_AXIS_DIRECTION_DDR(axis) _DDR(_CLONED_AXIS_DIRECTION_PORT(axis))
+  #define CLONED_AXIS_DIRECTION_BIT(axis) CLONED_##axis##_AXIS_DIRECTION_BIT
+  
   // Define step direction output pins.
   #define DIRECTION_PORT_0 F
   #define DIRECTION_PORT_1 F

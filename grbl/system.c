@@ -30,6 +30,16 @@ void system_init()
     CONTROL_PORT |= CONTROL_MASK;   // Enable internal pull-up resistors. Normal high operation.
   #endif
   
+  #ifdef CONTROL_CYCLE_START_DDR
+    CONTROL_CYCLE_START_DDR &= ~(1<<CONTROL_CYCLE_START_BIT);
+    
+    #ifdef DISABLE_CONTROL_PIN_PULL_UP
+      CONTROL_CYCLE_START_PORT &= ~(1<<CONTROL_CYCLE_START_BIT); // Normal low operation. Requires external pull-down.
+    #else
+      CONTROL_CYCLE_START_PORT |= (1<<CONTROL_CYCLE_START_BIT);   // Enable internal pull-up resistors. Normal high operation.
+    #endif
+  #endif
+  
   #ifdef USE_CONTROL_ISR
     CONTROL_PCMSK |= CONTROL_MASK;  // Enable specific pins of the Pin Change Interrupt
     PCICR |= (1 << CONTROL_INT);   // Enable Pin Change Interrupt
@@ -51,7 +61,7 @@ uint8_t system_control_get_state()
     pin ^= INVERT_CONTROL_PIN_MASK;
   #endif
   
-  if (pin) {
+  if (pin != CONTROL_MASK) {
     if (bit_isfalse(pin,(1<<CONTROL_SAFETY_DOOR_BIT))) { control_state |= CONTROL_PIN_INDEX_SAFETY_DOOR; }
     if (bit_isfalse(pin,(1<<CONTROL_RESET_BIT))) { control_state |= CONTROL_PIN_INDEX_RESET; }
     if (bit_isfalse(pin,(1<<CONTROL_FEED_HOLD_BIT))) { control_state |= CONTROL_PIN_INDEX_FEED_HOLD; }
@@ -63,9 +73,9 @@ uint8_t system_control_get_state()
 
   #ifdef CONTROL_CYCLE_START_PORT 
     #ifdef INVERT_CONTROL_CYCLE_START
-      if(! ( CONTROL_CYCLE_START_PIN & (1<<CONTROL_CYCLE_START_BIT) )) { control_state |= CONTROL_PIN_INDEX_CYCLE_START; }
-    #else
       if( CONTROL_CYCLE_START_PIN & (1<<CONTROL_CYCLE_START_BIT) ) { control_state |= CONTROL_PIN_INDEX_CYCLE_START; }
+    #else
+      if(! ( CONTROL_CYCLE_START_PIN & (1<<CONTROL_CYCLE_START_BIT) )) { control_state |= CONTROL_PIN_INDEX_CYCLE_START; }
     #endif // INVERT_CONTROL_CYCLE_START
   #endif // CONTROL_CYCLE_START_PORT
   

@@ -25,7 +25,6 @@
   #include "SDSupport.h"  
 #endif
 
-
 // Define line flags. Includes comment type tracking and line overflow detection.
 #define LINE_FLAG_OVERFLOW bit(0)
 #define LINE_FLAG_COMMENT_PARENTHESES bit(1)
@@ -225,7 +224,7 @@ void protocol_buffer_synchronize()
 // execute calls a buffer sync, or the planner buffer is full and ready to go.
 void protocol_auto_cycle_start()
 {
-  if (plan_get_current_block() != NULL) { // Check if there are any blocks in the buffer.
+  if ((sys.state == STATE_IDLE) && (plan_get_current_block() != NULL)) { // Check if there are any blocks in the buffer.
     system_set_exec_state_flag(EXEC_CYCLE_START); // If so, execute them!
   }
 }

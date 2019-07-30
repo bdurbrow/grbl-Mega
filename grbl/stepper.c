@@ -241,18 +241,45 @@ void st_wake_up()
       STEPPER_DISABLE_PORT(0) |= (1 << STEPPER_DISABLE_BIT(0));
       STEPPER_DISABLE_PORT(1) |= (1 << STEPPER_DISABLE_BIT(1));
       STEPPER_DISABLE_PORT(2) |= (1 << STEPPER_DISABLE_BIT(2));
+      #ifdef CLONE_X_AXIS
+        CLONED_AXIS_DISABLE_PORT(X) |= (1<<CLONED_AXIS_DISABLE_BIT(X));
+      #endif
+      #ifdef CLONE_Y_AXIS
+        CLONED_AXIS_DISABLE_PORT(Y) |= (1<<CLONED_AXIS_DISABLE_BIT(Y));
+      #endif
     } else {
       STEPPER_DISABLE_PORT(0) &= ~(1 << STEPPER_DISABLE_BIT(0));
       STEPPER_DISABLE_PORT(1) &= ~(1 << STEPPER_DISABLE_BIT(1));
       STEPPER_DISABLE_PORT(2) &= ~(1 << STEPPER_DISABLE_BIT(2));
+      #ifdef CLONE_X_AXIS
+        CLONED_AXIS_DISABLE_PORT(X) &= ~(1<<CLONED_AXIS_DISABLE_BIT(X));
+      #endif
+      #ifdef CLONE_Y_AXIS
+        CLONED_AXIS_DISABLE_PORT(Y) &= ~(1<<CLONED_AXIS_DISABLE_BIT(Y));
+      #endif
     }
     // Initialize stepper output bits to ensure first ISR call does not step.
     for (idx = 0; idx < N_AXIS; idx++) {
       st.step_outbits[idx] = step_port_invert_mask[idx];
     }
   #else
-    if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) { STEPPERS_DISABLE_PORT |= (1<<STEPPERS_DISABLE_BIT); }
-    else { STEPPERS_DISABLE_PORT &= ~(1<<STEPPERS_DISABLE_BIT); }
+    if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) {
+      STEPPERS_DISABLE_PORT |= (1<<STEPPERS_DISABLE_BIT);
+      #ifdef CLONE_X_AXIS
+        CLONED_AXIS_DISABLE_PORT(X) |= (1<<CLONED_AXIS_DISABLE_BIT(X));
+      #endif
+      #ifdef CLONE_Y_AXIS
+        CLONED_AXIS_DISABLE_PORT(Y) |= (1<<CLONED_AXIS_DISABLE_BIT(Y));
+      #endif
+    } else {
+      STEPPERS_DISABLE_PORT &= ~(1<<STEPPERS_DISABLE_BIT);
+      #ifdef CLONE_X_AXIS
+        CLONED_AXIS_DISABLE_PORT(X) &= ~(1<<CLONED_AXIS_DISABLE_BIT(X));
+      #endif
+      #ifdef CLONE_Y_AXIS
+        CLONED_AXIS_DISABLE_PORT(Y) &= ~(1<<CLONED_AXIS_DISABLE_BIT(Y));
+      #endif
+    }
     // Initialize stepper output bits to ensure first ISR call does not step.
     st.step_outbits = step_port_invert_mask;
   #endif // Ramps Board
@@ -295,14 +322,41 @@ void st_go_idle()
       STEPPER_DISABLE_PORT(0) |= (1 << STEPPER_DISABLE_BIT(0));
       STEPPER_DISABLE_PORT(1) |= (1 << STEPPER_DISABLE_BIT(1));
       STEPPER_DISABLE_PORT(2) |= (1 << STEPPER_DISABLE_BIT(2));
+      #ifdef CLONE_X_AXIS
+        CLONED_AXIS_DISABLE_PORT(X) |= (1<<CLONED_AXIS_DISABLE_BIT(X));
+      #endif
+      #ifdef CLONE_Y_AXIS
+        CLONED_AXIS_DISABLE_PORT(Y) |= (1<<CLONED_AXIS_DISABLE_BIT(Y));
+      #endif
     } else {
       STEPPER_DISABLE_PORT(0) &= ~(1 << STEPPER_DISABLE_BIT(0));
       STEPPER_DISABLE_PORT(1) &= ~(1 << STEPPER_DISABLE_BIT(1));
       STEPPER_DISABLE_PORT(2) &= ~(1 << STEPPER_DISABLE_BIT(2));
+      #ifdef CLONE_X_AXIS
+        CLONED_AXIS_DISABLE_PORT(X) &= ~(1<<CLONED_AXIS_DISABLE_BIT(X));
+      #endif
+      #ifdef CLONE_Y_AXIS
+        CLONED_AXIS_DISABLE_PORT(Y) &= ~(1<<CLONED_AXIS_DISABLE_BIT(Y));
+      #endif
     }
   #else
-    if (pin_state) { STEPPERS_DISABLE_PORT |= (1<<STEPPERS_DISABLE_BIT); }
-    else { STEPPERS_DISABLE_PORT &= ~(1<<STEPPERS_DISABLE_BIT); }
+    if (pin_state) {
+      STEPPERS_DISABLE_PORT |= (1<<STEPPERS_DISABLE_BIT);
+      #ifdef CLONE_X_AXIS
+        CLONED_AXIS_DISABLE_PORT(X) |= (1<<CLONED_AXIS_DISABLE_BIT(X));
+      #endif
+      #ifdef CLONE_Y_AXIS
+        CLONED_AXIS_DISABLE_PORT(Y) |= (1<<CLONED_AXIS_DISABLE_BIT(Y));
+      #endif
+    } else {
+      STEPPERS_DISABLE_PORT &= ~(1<<STEPPERS_DISABLE_BIT);
+      #ifdef CLONE_X_AXIS
+        CLONED_AXIS_DISABLE_PORT(X) &= ~(1<<CLONED_AXIS_DISABLE_BIT(X));
+      #endif
+      #ifdef CLONE_Y_AXIS
+        CLONED_AXIS_DISABLE_PORT(Y) &= ~(1<<CLONED_AXIS_DISABLE_BIT(Y));
+      #endif
+    }
   #endif // Ramps Board
 }
 
@@ -368,9 +422,37 @@ ISR(TIMER1_COMPA_vect)
     DIRECTION_PORT(0) = (DIRECTION_PORT(0) & ~(1 << DIRECTION_BIT(0))) | st.dir_outbits[0];
     DIRECTION_PORT(1) = (DIRECTION_PORT(1) & ~(1 << DIRECTION_BIT(1))) | st.dir_outbits[1];
     DIRECTION_PORT(2) = (DIRECTION_PORT(2) & ~(1 << DIRECTION_BIT(2))) | st.dir_outbits[2];
+    
+    #ifdef CLONE_X_AXIS
+      if(st.dir_outbits[X_AXIS] & (1<<DIRECTION_BIT(X_AXIS)))
+        CLONED_AXIS_DIRECTION_PORT(X) |= (1<<CLONED_AXIS_DIRECTION_BIT(X));
+      else
+        CLONED_AXIS_DIRECTION_PORT(X) &= ~(1<<CLONED_AXIS_DIRECTION_BIT(X));
+    #endif
+
+    #ifdef CLONE_Y_AXIS
+      if(st.dir_outbits[Y_AXIS] & (1<<DIRECTION_BIT(Y_AXIS)))
+        CLONED_AXIS_DIRECTION_PORT(Y) |= (1<<CLONED_AXIS_DIRECTION_BIT(Y));
+      else
+        CLONED_AXIS_DIRECTION_PORT(Y) &= ~(1<<CLONED_AXIS_DIRECTION_BIT(Y));
+    #endif
   #else
     DIRECTION_PORT = (DIRECTION_PORT & ~DIRECTION_MASK) | (st.dir_outbits & DIRECTION_MASK);
-  #endif // Ramps Boafd
+    
+    #ifdef CLONE_X_AXIS
+      if(st.dir_outbits & (1<<DIRECTION_BIT(X_AXIS)))
+        CLONED_AXIS_DIRECTION_PORT(X) |= (1<<CLONED_AXIS_DIRECTION_BIT(X));
+      else
+        CLONED_AXIS_DIRECTION_PORT(X) &= ~(1<<CLONED_AXIS_DIRECTION_BIT(X));
+    #endif
+
+    #ifdef CLONE_Y_AXIS
+      if(st.dir_outbits & (1<<DIRECTION_BIT(Y_AXIS)))
+        CLONED_AXIS_DIRECTION_PORT(Y) |= (1<<CLONED_AXIS_DIRECTION_BIT(Y));
+      else
+        CLONED_AXIS_DIRECTION_PORT(Y) &= ~(1<<CLONED_AXIS_DIRECTION_BIT(Y));
+    #endif
+  #endif // Ramps Board
 
   // Then pulse the stepping pins
   #ifdef DEFAULTS_RAMPS_BOARD
@@ -382,12 +464,40 @@ ISR(TIMER1_COMPA_vect)
       STEP_PORT(0) = (STEP_PORT(0) & ~(1 << STEP_BIT(0))) | st.step_outbits[0];
       STEP_PORT(1) = (STEP_PORT(1) & ~(1 << STEP_BIT(1))) | st.step_outbits[1];
       STEP_PORT(2) = (STEP_PORT(2) & ~(1 << STEP_BIT(2))) | st.step_outbits[2];
+      
+      #ifdef CLONE_X_AXIS
+        if(st.step_outbits[X_AXIS])
+          CLONED_AXIS_STEP_PORT(X) |= (1<<CLONED_AXIS_STEP_BIT(X));
+        else
+          CLONED_AXIS_STEP_PORT(X) &= ~(1<<CLONED_AXIS_STEP_BIT(X));
+      #endif
+      
+      #ifdef CLONE_Y_AXIS
+        if(st.step_outbits[Y_AXIS])
+          CLONED_AXIS_STEP_PORT(Y) |= (1<<CLONED_AXIS_STEP_BIT(Y));
+        else
+          CLONED_AXIS_STEP_PORT(Y) &= ~(1<<CLONED_AXIS_STEP_BIT(Y));
+      #endif
     #endif
-  #else  
+  #else
     #ifdef STEP_PULSE_DELAY
       st.step_bits = (STEP_PORT & ~STEP_MASK) | st.step_outbits; // Store out_bits to prevent overwriting.
     #else  // Normal operation
       STEP_PORT = (STEP_PORT & ~STEP_MASK) | st.step_outbits;
+      
+      #ifdef CLONE_X_AXIS
+        if(st.step_outbits & (1<<STEP_BIT(X_AXIS)))
+          CLONED_AXIS_STEP_PORT(X) |= (1<<CLONED_AXIS_STEP_BIT(X));
+        else
+          CLONED_AXIS_STEP_PORT(X) &= ~(1<<CLONED_AXIS_STEP_BIT(X));
+      #endif
+      
+      #ifdef CLONE_Y_AXIS
+        if(st.step_outbits & (1<<STEP_BIT(Y_AXIS)))
+          CLONED_AXIS_STEP_PORT(Y) |= (1<<CLONED_AXIS_STEP_BIT(Y));
+        else
+          CLONED_AXIS_STEP_PORT(Y) &= ~(1<<CLONED_AXIS_STEP_BIT(Y));
+      #endif
     #endif
   #endif // Ramps Board
 
@@ -568,6 +678,20 @@ ISR(TIMER0_OVF_vect)
     STEP_PORT(0) = (STEP_PORT(0) & ~(1 << STEP_BIT(0))) | step_port_invert_mask[0];
     STEP_PORT(1) = (STEP_PORT(1) & ~(1 << STEP_BIT(1))) | step_port_invert_mask[1];
     STEP_PORT(2) = (STEP_PORT(2) & ~(1 << STEP_BIT(2))) | step_port_invert_mask[2];
+    
+    #ifdef CLONE_X_AXIS
+      if(step_port_invert_mask[X_AXIS])
+        CLONED_AXIS_STEP_PORT(X) |= (1<<CLONED_AXIS_STEP_BIT(X));
+      else
+        CLONED_AXIS_STEP_PORT(X) &= ~(1<<CLONED_AXIS_STEP_BIT(X));
+    #endif
+    
+    #ifdef CLONE_Y_AXIS
+      if(step_port_invert_mask[Y_AXIS])
+        CLONED_AXIS_STEP_PORT(Y) |= (1<<CLONED_AXIS_STEP_BIT(Y));
+      else
+        CLONED_AXIS_STEP_PORT(Y) &= ~(1<<CLONED_AXIS_STEP_BIT(Y));
+    #endif
   #else
     STEP_PORT = (STEP_PORT & ~STEP_MASK) | (step_port_invert_mask & STEP_MASK);
   #endif // Ramps Board
@@ -585,8 +709,36 @@ ISR(TIMER0_OVF_vect)
       STEP_PORT(0) = st.step_bits[0]; // Begin step pulse.
       STEP_PORT(1) = st.step_bits[1]; // Begin step pulse.
       STEP_PORT(2) = st.step_bits[2]; // Begin step pulse.
+      
+      #ifdef CLONE_X_AXIS
+        if(st.step_bits[X_AXIS] & STEP_BIT(X_AXIS))
+          CLONED_AXIS_STEP_PORT(X) |= (1<<CLONED_AXIS_STEP_BIT(X));
+        else
+          CLONED_AXIS_STEP_PORT(X) &= ~(1<<CLONED_AXIS_STEP_BIT(X));
+      #endif
+      
+      #ifdef CLONE_Y_AXIS
+        if(st.step_bits[Y_AXIS] & STEP_BIT(Y_AXIS))
+          CLONED_AXIS_STEP_PORT(Y) |= (1<<CLONED_AXIS_STEP_BIT(Y));
+        else
+          CLONED_AXIS_STEP_PORT(Y) &= ~(1<<CLONED_AXIS_STEP_BIT(Y));
+      #endif
     #else
       STEP_PORT = st.step_bits; // Begin step pulse.
+      
+      #ifdef CLONE_X_AXIS
+        if(st.step_bits & STEP_BIT(X_AXIS))
+          CLONED_AXIS_STEP_PORT(X) |= (1<<CLONED_AXIS_STEP_BIT(X));
+        else
+          CLONED_AXIS_STEP_PORT(X) &= ~(1<<CLONED_AXIS_STEP_BIT(X));
+      #endif
+      
+      #ifdef CLONE_Y_AXIS
+        if(st.step_bits & STEP_BIT(Y_AXIS))
+          CLONED_AXIS_STEP_PORT(Y) |= (1<<CLONED_AXIS_STEP_BIT(Y));
+        else
+          CLONED_AXIS_STEP_PORT(Y) &= ~(1<<CLONED_AXIS_STEP_BIT(Y));
+      #endif
     #endif // Ramps Board
   }
 #endif
@@ -656,6 +808,30 @@ void st_reset()
     STEP_PORT = (STEP_PORT & ~STEP_MASK) | step_port_invert_mask;
     DIRECTION_PORT = (DIRECTION_PORT & ~DIRECTION_MASK) | dir_port_invert_mask;
   #endif // Ramps Board
+  
+  #ifdef CLONE_X_AXIS
+    if (bit_istrue(settings.step_invert_mask,bit(X_AXIS)))
+      CLONED_AXIS_STEP_PORT(X) |= (1<<CLONED_AXIS_STEP_BIT(X));
+    else
+      CLONED_AXIS_STEP_PORT(X) &= ~(1<<CLONED_AXIS_STEP_BIT(X));
+
+    if (bit_istrue(settings.dir_invert_mask,bit(X_AXIS)))
+      CLONED_AXIS_DIRECTION_PORT(X) |= (1<<CLONED_AXIS_DIRECTION_BIT(X));
+    else
+      CLONED_AXIS_DIRECTION_PORT(X) &= ~(1<<CLONED_AXIS_DIRECTION_BIT(X));
+  #endif
+  
+  #ifdef CLONE_Y_AXIS
+    if (bit_istrue(settings.step_invert_mask,bit(Y_AXIS)))
+      CLONED_AXIS_STEP_PORT(Y) |= (1<<CLONED_AXIS_STEP_BIT(Y));
+    else
+      CLONED_AXIS_STEP_PORT(Y) &= ~(1<<CLONED_AXIS_STEP_BIT(Y));
+
+    if (bit_istrue(settings.dir_invert_mask,bit(Y_AXIS)))
+      CLONED_AXIS_DIRECTION_PORT(Y) |= (1<<CLONED_AXIS_DIRECTION_BIT(Y));
+    else
+      CLONED_AXIS_DIRECTION_PORT(Y) &= ~(1<<CLONED_AXIS_DIRECTION_BIT(Y));
+  #endif
 }
 
 
@@ -674,12 +850,24 @@ void stepper_init()
   
     DIRECTION_DDR(0) |= 1<<DIRECTION_BIT(0);
     DIRECTION_DDR(1) |= 1<<DIRECTION_BIT(1);
-    DIRECTION_DDR(2) |= 1<<DIRECTION_BIT(2);
+    DIRECTION_DDR(2) |= 1<<DIRECTION_BIT(2);    
   #else
     STEP_DDR |= STEP_MASK;
     STEPPERS_DISABLE_DDR |= 1<<STEPPERS_DISABLE_BIT;
     DIRECTION_DDR |= DIRECTION_MASK;
   #endif // Ramps Board
+  
+  #ifdef CLONE_X_AXIS
+    CLONED_AXIS_DISABLE_DDR(X)    |= 1<<CLONED_AXIS_DISABLE_BIT(X);
+    CLONED_AXIS_STEP_DDR(X)       |= 1<<CLONED_AXIS_STEP_BIT(X);
+    CLONED_AXIS_DIRECTION_DDR(X)  |= 1<<CLONED_AXIS_DIRECTION_BIT(X);
+  #endif
+
+  #ifdef CLONE_Y_AXIS
+    CLONED_AXIS_DISABLE_DDR(Y)    |= 1<<CLONED_AXIS_DISABLE_BIT(Y);
+    CLONED_AXIS_STEP_DDR(Y)       |= 1<<CLONED_AXIS_STEP_BIT(Y);
+    CLONED_AXIS_DIRECTION_DDR(Y)  |= 1<<CLONED_AXIS_DIRECTION_BIT(Y);
+  #endif
 
   // Configure Timer 1: Stepper Driver Interrupt
   TCCR1B &= ~(1<<WGM13); // waveform generation = 0100 = CTC

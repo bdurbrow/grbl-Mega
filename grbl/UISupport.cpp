@@ -473,16 +473,17 @@ AbstractUIPage *activeUIPage;
 							mc_reset();
 						}
 						if (bit_istrue(pin,CONTROL_PIN_INDEX_CYCLE_START)) {
-							bit_true(sys_rt_exec_state, EXEC_CYCLE_START);
+							system_set_exec_state_flag(EXEC_CYCLE_START);
 						}
 						#ifndef ENABLE_SAFETY_DOOR_INPUT_PIN
 							if (bit_istrue(pin,CONTROL_PIN_INDEX_FEED_HOLD)) {
-								bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+								system_set_exec_state_flag(EXEC_FEED_HOLD);
+						  }
 						#else
 							if (bit_istrue(pin,CONTROL_PIN_INDEX_SAFETY_DOOR)) {
-								bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
+								system_set_exec_state_flag(EXEC_SAFETY_DOOR);
+							}
 						#endif
-						}
 					}
 				}
 				break;
@@ -752,6 +753,14 @@ AbstractUIPage *activeUIPage;
     sPrintFloatRightJustified(&DROTextBuffer[1], 9, value, 4);
   }
 
+  static inline void renderLineCountDROText(void)
+  {
+    DROTextBuffer[0] = ' ';
+		DROTextBuffer[1] = 'L';
+		DROTextBuffer[2] = 'n';
+    sPrintFloatRightJustified(&DROTextBuffer[3], 7, SD_line_count, 0);
+  }
+
   #if(N_AXIS > 3)
 
     static inline void renderADROText(void)
@@ -781,7 +790,6 @@ AbstractUIPage *activeUIPage;
     renderXDROText(); drawDROText(0,1,10);
     renderYDROText(); drawDROText(0,2,10);
     renderZDROText(); drawDROText(0,3,10);
-    lcd.writeMultiple(' ', 10);
     
     #if(N_AXIS > 3)
       renderADROText(); drawDROText(10,1,10);
@@ -793,14 +801,16 @@ AbstractUIPage *activeUIPage;
     #else
       lcd.setCursor(10,2);  lcd.writeMultiple(' ', 10);
     #endif
+    
+    renderLineCountDROText(); drawDROText(10,3,10);
   }
   
   #if(N_AXIS > 4)
-    #define POSITION_DRO_UPDATE_PHASE_COUNT  (10)
+    #define POSITION_DRO_UPDATE_PHASE_COUNT  (12)
   #elif(N_AXIS > 3)
-    #define POSITION_DRO_UPDATE_PHASE_COUNT  (8)
+    #define POSITION_DRO_UPDATE_PHASE_COUNT  (10)
   #else
-    #define POSITION_DRO_UPDATE_PHASE_COUNT  (6)
+    #define POSITION_DRO_UPDATE_PHASE_COUNT  (8)
   #endif
 
   static inline void updatePositionDRO(void)
@@ -813,14 +823,16 @@ AbstractUIPage *activeUIPage;
       case 3: drawDROText(0,2,10); break;
       case 4: renderZDROText(); break;
       case 5: drawDROText(0,3,10); break;
+      case 6: renderLineCountDROText(); break;
+      case 7: drawDROText(10,3,10); break;
       
       #if(N_AXIS > 3)
-        case 6: renderADROText(); break;
-        case 7: drawDROText(10,1,10); break;
+        case 8: renderADROText(); break;
+        case 9: drawDROText(10,1,10); break;
       #endif
       #if(N_AXIS > 4)
-        case 8: renderBDROText(); break;
-        case 9: drawDROText(10,2,10); break;
+        case 10: renderBDROText(); break;
+        case 11: drawDROText(10,2,10); break;
       #endif
     };
     DROUpdatePhase++;
