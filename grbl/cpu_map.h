@@ -165,7 +165,7 @@
   #define STEP_PIN(i) _PIN(STEP_PORT_##i)
 
   // Define Cloned Axis
-  #define CLONE_X_AXIS
+  //#define CLONE_X_AXIS
   #define CLONED_X_AXIS_DISABLE_PORT A
   #define CLONED_X_AXIS_DISABLE_BIT 2
   #define CLONED_X_AXIS_STEP_PORT A
@@ -173,7 +173,7 @@
   #define CLONED_X_AXIS_DIRECTION_PORT A
   #define CLONED_X_AXIS_DIRECTION_BIT 6
   
-  #define CLONE_Y_AXIS
+  //#define CLONE_Y_AXIS
   #define CLONED_Y_AXIS_DISABLE_PORT C
   #define CLONED_Y_AXIS_DISABLE_BIT 7
   #define CLONED_Y_AXIS_STEP_PORT C
