@@ -166,6 +166,7 @@
 
   // Define Cloned Axis
   //#define CLONE_X_AXIS
+  //#define SQUARE_CLONED_X_AXIS
   #define CLONED_X_AXIS_DISABLE_PORT A
   #define CLONED_X_AXIS_DISABLE_BIT 2
   #define CLONED_X_AXIS_STEP_PORT A
@@ -174,6 +175,7 @@
   #define CLONED_X_AXIS_DIRECTION_BIT 6
   
   //#define CLONE_Y_AXIS
+  //#define SQUARE_CLONED_Y_AXIS
   #define CLONED_Y_AXIS_DISABLE_PORT C
   #define CLONED_Y_AXIS_DISABLE_BIT 7
   #define CLONED_Y_AXIS_STEP_PORT C
@@ -255,7 +257,7 @@
     // RAMPS Label:       GRBL Function:
     //  Y-                X Minimum Limit Switch
     //  Y                 Y Minimum Limit Switch
-    //  Z-                Unused
+    //  Z-                Unused (unless Axis Cloning is enabled)
     //  Z                 Z Maximum Limit Switch
     
     #define MIN_LIMIT_PORT_0 J
@@ -344,15 +346,15 @@
   #endif // USE_UI_SUPPORT
 
   // Define probe switch input pin.
-  #define PROBE_DDR       DDRK
-  #define PROBE_PIN       PINK
-  #define PROBE_PORT      PORTK
-  #define PROBE_BIT       7  // MEGA2560 Analog Pin 15
+  #define PROBE_DDR       DDRF
+  #define PROBE_PIN       PINF
+  #define PROBE_PORT      PORTF
+  #define PROBE_BIT       3  // MEGA2560 Digital Pin 57; on RAMPS Aux 1
   #define PROBE_MASK      (1<<PROBE_BIT)
 
-  // Advanced Configuration Below You should not need to touch these variables
-  // Set Timer up to use TIMER4B which is attached to Digital Pin 8 - Ramps 1.4 12v output with heat sink
-  #define SPINDLE_PWM_MAX_VALUE     1024.0 // Translates to about 1.9 kHz PWM frequency at 1/8 prescaler
+  // Advanced Configuration Below -- You should not need to touch these variables
+  // Set Timer up to use TIMER4A which is attached to Digital Pin 6
+  #define SPINDLE_PWM_MAX_VALUE     1023.0 // Translates to about 1.9 kHz PWM frequency at 1/8 prescaler
   #ifndef SPINDLE_PWM_MIN_VALUE
   #define SPINDLE_PWM_MIN_VALUE     1   // Must be greater than zero.
   #endif
@@ -362,19 +364,17 @@
   //Control Digital Pin 6 which is Servo 2 signal pin on Ramps 1.4 board
   #define SPINDLE_TCCRA_REGISTER    TCCR4A
   #define SPINDLE_TCCRB_REGISTER    TCCR4B
-  #define SPINDLE_OCR_REGISTER      OCR4C
-  #define SPINDLE_COMB_BIT          COM4C1
+  #define SPINDLE_OCR_REGISTER      OCR4A
+  #define SPINDLE_COMB_BIT          COM4A1
 
-  // 1/8 Prescaler, 16-bit Fast PWM mode
+  // 1/8 Prescaler, 10-bit Fast PWM mode
   #define SPINDLE_TCCRA_INIT_MASK ((1<<WGM40) | (1<<WGM41))
-  #define SPINDLE_TCCRB_INIT_MASK ((1<<WGM42) | (1<<WGM43) | (1<<CS41)) 
-  #define SPINDLE_OCRA_REGISTER   OCR4A // 16-bit Fast PWM mode requires top reset value stored here.
-  #define SPINDLE_OCRA_TOP_VALUE  0x0400 // PWM counter reset value. Should be the same as PWM_MAX_VALUE in hex.
+  #define SPINDLE_TCCRB_INIT_MASK ((1<<WGM42) | (1<<CS41)) 
 
   // Define spindle output pins.
   #define SPINDLE_PWM_DDR   DDRH
   #define SPINDLE_PWM_PORT  PORTH
-  #define SPINDLE_PWM_BIT   5 // MEGA2560 Digital Pin 8 
+  #define SPINDLE_PWM_BIT   3 // MEGA2560 Digital Pin 6 
 
   // If enabled, define the pin configuration for the SD interface.
   #ifdef USE_SD_SUPPORT
