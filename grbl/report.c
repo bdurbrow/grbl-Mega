@@ -519,7 +519,7 @@ void report_realtime_status()
     // Report current line number
     plan_block_t * cur_block = plan_get_current_block();
     if (cur_block != NULL) {
-      uint32_t ln = cur_block->line_number;
+      int32_t ln = cur_block->line_number;
       if (ln > 0) {
         printPgmString(PSTR("|Ln:"));
         printInteger(ln);

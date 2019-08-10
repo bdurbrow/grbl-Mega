@@ -63,7 +63,9 @@ uint8_t system_control_get_state()
   
   if (pin != CONTROL_MASK) {
     if (bit_isfalse(pin,(1<<CONTROL_SAFETY_DOOR_BIT))) { control_state |= CONTROL_PIN_INDEX_SAFETY_DOOR; }
-    if (bit_isfalse(pin,(1<<CONTROL_RESET_BIT))) { control_state |= CONTROL_PIN_INDEX_RESET; }
+    #ifdef CONTROL_RESET_BIT
+      if (bit_isfalse(pin,(1<<CONTROL_RESET_BIT))) { control_state |= CONTROL_PIN_INDEX_RESET; }
+    #endif
     if (bit_isfalse(pin,(1<<CONTROL_FEED_HOLD_BIT))) { control_state |= CONTROL_PIN_INDEX_FEED_HOLD; }
   
     #ifndef CONTROL_CYCLE_START_PORT 
@@ -92,20 +94,22 @@ uint8_t system_control_get_state()
   {
     uint8_t pin = system_control_get_state();
     if (pin) {
-      if (bit_istrue(pin,CONTROL_PIN_INDEX_RESET)) {
+      if (bit_istrue(pin,CONTROL_PIN_INDEX_RESET))
         mc_reset();
-      }
-      if (bit_istrue(pin,CONTROL_PIN_INDEX_CYCLE_START)) {
+      
+      if (bit_istrue(pin,CONTROL_PIN_INDEX_CYCLE_START))
         bit_true(sys_rt_exec_state, EXEC_CYCLE_START);
-      }
-      #ifndef ENABLE_SAFETY_DOOR_INPUT_PIN
-        if (bit_istrue(pin,CONTROL_PIN_INDEX_FEED_HOLD)) {
-          bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
-      #else
-        if (bit_istrue(pin,CONTROL_PIN_INDEX_SAFETY_DOOR)) {
+      
+      if (bit_istrue(pin, CONTROL_PIN_INDEX_SAFETY_DOOR))
+        bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
+    
+      #ifdef MAP_FEED_HOLD_INPUT_TO_SAFETY_DOOR_BEHAVIOR
+        if (bit_istrue(pin, CONTROL_PIN_INDEX_FEED_HOLD))
           bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
+      #else
+        if (bit_istrue(pin, CONTROL_PIN_INDEX_FEED_HOLD))
+          bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
       #endif
-      }
     }
   }
 #endif // USE_CONTROL_ISR

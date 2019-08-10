@@ -280,7 +280,6 @@ void protocol_exec_rt_system()
 
   rt_exec = sys_rt_exec_state; // Copy volatile sys_rt_exec_state.
   if (rt_exec) {
-
     // Execute system abort.
     if (rt_exec & EXEC_RESET) {
       sys.abort = true;  // Only place this is set true.
@@ -364,7 +363,7 @@ void protocol_exec_rt_system()
         if (sys.state == STATE_ALARM) { sys.suspend |= (SUSPEND_RETRACT_COMPLETE|SUSPEND_HOLD_COMPLETE); }
         sys.state = STATE_SLEEP; 
       }
-
+      
       system_clear_exec_state_flag((EXEC_MOTION_CANCEL | EXEC_FEED_HOLD | EXEC_SAFETY_DOOR | EXEC_SLEEP));
     }
 
@@ -533,7 +532,6 @@ void protocol_exec_rt_system()
   if (sys.state & (STATE_CYCLE | STATE_HOLD | STATE_SAFETY_DOOR | STATE_HOMING | STATE_SLEEP| STATE_JOG)) {
     st_prep_buffer();
   }
-
 }
 
 
@@ -574,7 +572,7 @@ static void protocol_exec_rt_suspend()
 
   while (sys.suspend) {
 
-    if (sys.abort) { return; }
+    if (sys.abort) return;
 
     // Block until initial hold is complete and the machine has stopped motion.
     if (sys.suspend & SUSPEND_HOLD_COMPLETE) {
@@ -655,7 +653,6 @@ static void protocol_exec_rt_suspend()
           sys.suspend |= SUSPEND_RETRACT_COMPLETE;
 
         } else {
-
           
           if (sys.state == STATE_SLEEP) {
             report_feedback_message(MESSAGE_SLEEP_MODE);
@@ -801,7 +798,6 @@ static void protocol_exec_rt_suspend()
     #endif
 
     protocol_exec_rt_system();
-
     UITask();
     gxi_loop();
   }

@@ -19,7 +19,10 @@
   extern const char *grbltempDisplayName;    // Display name for when grbltemp is the file being executed. Must be located in program space.
   extern SD_Directory_Entry SD_directory[SD_DIRECTORY_SIZE];
   extern uint8_t SD_directory_count;
-  extern int32_t SD_line_count;
+  
+  #ifdef DISPLAY_SD_LINE_COUNT
+    extern int32_t SD_line_count;
+  #endif
   
   #ifdef __cplusplus
     

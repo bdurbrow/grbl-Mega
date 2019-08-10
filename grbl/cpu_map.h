@@ -136,6 +136,12 @@
 #endif
 
 #ifdef CPU_MAP_2560_RAMPS_BOARD // (Arduino Mega 2560) with Ramps 1.4 Board
+
+  // The GeckoBreakout board is almost identical to a RAMPS in pinouts.
+  // The primary difference is that there is a RS485 interface connected to the UART on pins D16 and D17;
+  // and the LCD and control connectors have slightly different mappings.
+  // #define GeckoBreakout_Variant
+
   #include "nuts_bolts.h"
 
   // Serial port interrupt vectors
@@ -333,15 +339,28 @@
     #define CONTROL_DDR       DDRL
     #define CONTROL_PIN       PINL
     #define CONTROL_PORT      PORTL
-    #define CONTROL_RESET_BIT         2  // Pin D47 - RAMPS Aux 4 Port
+    #ifndef GeckoBreakout_Variant
+      #define CONTROL_RESET_BIT         2  // Pin D47 - RAMPS Aux 4 Port
+    #endif
     #define CONTROL_FEED_HOLD_BIT     4  // Pin D45 - RAMPS Aux 4 Port
     #define CONTROL_SAFETY_DOOR_BIT   6  // Pin D43 - RAMPS Aux 4 Port
-    #define CONTROL_MASK      ((1<<CONTROL_RESET_BIT)|(1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT))
+    #ifndef GeckoBreakout_Variant
+      #define CONTROL_MASK      ((1<<CONTROL_RESET_BIT)|(1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT))
+    #else
+      #define CONTROL_MASK      ((1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT))
+    #endif
 
-    #define CONTROL_CYCLE_START_DDR       DDRC
-    #define CONTROL_CYCLE_START_PIN       PINC
-    #define CONTROL_CYCLE_START_PORT      PORTC
-    #define CONTROL_CYCLE_START_BIT       5 // Pin D32 - RAMPS Aux 4 Port
+    #ifndef GeckoBreakout_Variant
+      #define CONTROL_CYCLE_START_DDR       DDRC
+      #define CONTROL_CYCLE_START_PIN       PINC
+      #define CONTROL_CYCLE_START_PORT      PORTC
+      #define CONTROL_CYCLE_START_BIT       5 // Pin D32 - RAMPS Aux 4 Port
+    #else
+      #define CONTROL_CYCLE_START_DDR       DDRL
+      #define CONTROL_CYCLE_START_PIN       PINL
+      #define CONTROL_CYCLE_START_PORT      PORTL
+      #define CONTROL_CYCLE_START_BIT       2 // Pin D47 - GeckoBreakout
+    #endif
 
   #endif // USE_UI_SUPPORT
 
@@ -387,8 +406,14 @@
     #define BEEPER 37 //[RAMPS14-SMART-ADAPTER]
   
   // Define the pin configuration for the LCD interface.
-    #define LCD_PIN_RS 16 //[RAMPS14-SMART-ADAPTER]
-    #define LCD_PIN_EN 17 //[RAMPS14-SMART-ADAPTER]
+    #ifndef GeckoBreakout_Variant
+      #define LCD_PIN_RS 16 //[RAMPS14-SMART-ADAPTER]
+      #define LCD_PIN_EN 17 //[RAMPS14-SMART-ADAPTER]
+    #else
+      #define LCD_PIN_RS 39 //[GeckoBreakout_Variant]
+      #define LCD_PIN_EN 32 //[GeckoBreakout_Variant]
+    #endif
+    
     #define LCD_PIN_D4 23 //[RAMPS14-SMART-ADAPTER]
     #define LCD_PIN_D5 25 //[RAMPS14-SMART-ADAPTER]
     #define LCD_PIN_D6 27 //[RAMPS14-SMART-ADAPTER]

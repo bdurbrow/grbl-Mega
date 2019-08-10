@@ -171,7 +171,7 @@
 // immediately forces a feed hold and then safely de-energizes the machine. Resuming is blocked until
 // the safety door is re-engaged. When it is, Grbl will re-energize the machine and then resume on the
 // previous tool path, as if nothing happened.
-// #define ENABLE_SAFETY_DOOR_INPUT_PIN // Default disabled. Uncomment to enable.
+// #define MAP_FEED_HOLD_INPUT_TO_SAFETY_DOOR_BEHAVIOR // Default disabled. Uncomment to enable.
 
 // After the safety door switch has been toggled and restored, this setting sets the power-up delay
 // between restoring the spindle and coolant and resuming the cycle.
@@ -673,6 +673,10 @@
 	// The value specified is the ADC channel to be used. Input voltage range is 0 to 2.5 volts.
 	//#define UI_SPINDLE_OVERRIDE_POTENTIOMETER		15
 	
+	// If defined, this will display the number of lines read from the SD card on the LCD.
+	// Note that this is NOT the current line being executed; this counter runs ahead of the
+	// stepper driver ISR.
+	#define DISPLAY_SD_LINE_COUNT	
 	
 /* ---------------------------------------------------------------------------------------
    OEM Single File Configuration Option

@@ -467,23 +467,29 @@ AbstractUIPage *activeUIPage;
 			case 1:
 				{
 					// Poll the control inputs.
+					static uint8_t previousPin = 0;
 					uint8_t pin = system_control_get_state();
-					if (pin) {
-						if (bit_istrue(pin,CONTROL_PIN_INDEX_RESET)) {
-							mc_reset();
+					if(previousPin != pin)
+					{
+            if (pin) {
+              if (bit_istrue(pin,CONTROL_PIN_INDEX_RESET))
+                mc_reset();
+              
+              if (bit_istrue(pin,CONTROL_PIN_INDEX_CYCLE_START))
+                system_set_exec_state_flag(EXEC_CYCLE_START);
+              
+              if (bit_istrue(pin, CONTROL_PIN_INDEX_SAFETY_DOOR))
+                bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
+              
+              #ifdef MAP_FEED_HOLD_INPUT_TO_SAFETY_DOOR_BEHAVIOR
+                if (bit_istrue(pin, CONTROL_PIN_INDEX_FEED_HOLD))
+                  bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
+              #else
+                if (bit_istrue(pin, CONTROL_PIN_INDEX_FEED_HOLD))
+                  bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+              #endif
 						}
-						if (bit_istrue(pin,CONTROL_PIN_INDEX_CYCLE_START)) {
-							system_set_exec_state_flag(EXEC_CYCLE_START);
-						}
-						#ifndef ENABLE_SAFETY_DOOR_INPUT_PIN
-							if (bit_istrue(pin,CONTROL_PIN_INDEX_FEED_HOLD)) {
-								system_set_exec_state_flag(EXEC_FEED_HOLD);
-						  }
-						#else
-							if (bit_istrue(pin,CONTROL_PIN_INDEX_SAFETY_DOOR)) {
-								system_set_exec_state_flag(EXEC_SAFETY_DOOR);
-							}
-						#endif
+            previousPin = pin;
 					}
 				}
 				break;
@@ -758,7 +764,16 @@ AbstractUIPage *activeUIPage;
     DROTextBuffer[0] = ' ';
 		DROTextBuffer[1] = 'L';
 		DROTextBuffer[2] = 'n';
-    sPrintFloatRightJustified(&DROTextBuffer[3], 7, SD_line_count, 0);
+    
+    #ifdef DISPLAY_SD_LINE_COUNT
+      sPrintFloatRightJustified(&DROTextBuffer[3], 7, SD_line_count, 0);
+    #else
+      plan_block_t * cur_block = plan_get_current_block();
+      if (cur_block != NULL) {
+        int32_t lineNumber = cur_block->line_number;
+        sPrintFloatRightJustified(&DROTextBuffer[3], 7, lineNumber, 0);
+      }
+    #endif    
   }
 
   #if(N_AXIS > 3)
@@ -1454,11 +1469,7 @@ AbstractUIPage *activeUIPage;
   }
   
   inline void JogUIPage::jog(int8_t count)
-  {
-    //print_uint8_base2_ndigit(motionFlags, 8);
-    //printInteger(count);
-    //serial_write('\n');
-  
+  {  
     if(performingPowerFeed) return;
   
     if(motionFlags & ((count > 0)?JogUIPage_positiveDirectionLockout_Flag:JogUIPage_negativeDirectionLockout_Flag)) return;
