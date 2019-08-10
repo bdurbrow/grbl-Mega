@@ -395,12 +395,12 @@
 // much greater than this. The default setting should capture most, if not all, full arc error situations.
 #define ARC_ANGULAR_TRAVEL_EPSILON 5E-7 // Float (radians)
 
-// Time delay increments performed during a dwell. The default value is set at 50ms, which provides
+// Time delay increments performed during a dwell. The default value is set at 25ms, which provides
 // a maximum time delay of roughly 55 minutes, more than enough for most any application. Increasing
 // this delay will increase the maximum dwell time linearly, but also reduces the responsiveness of
 // run-time command executions, like status reports, since these are performed between each dwell
 // time step. Also, keep in mind that the Arduino delay timer is not very accurate for long delays.
-#define DWELL_TIME_STEP 50 // Integer (1-255) (milliseconds)
+#define DWELL_TIME_STEP 25 // Integer (1-255) (milliseconds)
 
 // Creates a delay between the direction pin setting and corresponding step pulse by creating
 // another interrupt (Timer2 compare) to manage it. The main Grbl interrupt (Timer1 compare)

@@ -273,6 +273,8 @@ void protocol_exec_rt_system()
         // the user and a GUI time to do what is needed before resetting, like killing the
         // incoming stream. The same could be said about soft limits. While the position is not
         // lost, continued streaming could cause a serious crash if by chance it gets executed.
+        UITask();
+        gxi_loop();
       } while (bit_isfalse(sys_rt_exec_state,EXEC_RESET));
     }
     system_clear_exec_alarm(); // Clear alarm
@@ -583,7 +585,6 @@ static void protocol_exec_rt_suspend()
       
         // Handles retraction motions and de-energizing.
         if (bit_isfalse(sys.suspend,SUSPEND_RETRACT_COMPLETE)) {
-
           // Ensure any prior spindle stop override is disabled at start of safety door routine.
           sys.spindle_stop_ovr = SPINDLE_STOP_OVR_DISABLED;
 
@@ -648,12 +649,10 @@ static void protocol_exec_rt_suspend()
             }
 
           #endif
-
           sys.suspend &= ~(SUSPEND_RESTART_RETRACT);
           sys.suspend |= SUSPEND_RETRACT_COMPLETE;
 
         } else {
-          
           if (sys.state == STATE_SLEEP) {
             report_feedback_message(MESSAGE_SLEEP_MODE);
             // Spindle and coolant should already be stopped, but do it again just to be sure.
