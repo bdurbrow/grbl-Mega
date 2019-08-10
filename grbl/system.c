@@ -100,16 +100,11 @@ uint8_t system_control_get_state()
       if (bit_istrue(pin,CONTROL_PIN_INDEX_CYCLE_START))
         bit_true(sys_rt_exec_state, EXEC_CYCLE_START);
       
+      if (bit_istrue(pin, CONTROL_PIN_INDEX_FEED_HOLD))
+        bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+      
       if (bit_istrue(pin, CONTROL_PIN_INDEX_SAFETY_DOOR))
         bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
-    
-      #ifdef MAP_FEED_HOLD_INPUT_TO_SAFETY_DOOR_BEHAVIOR
-        if (bit_istrue(pin, CONTROL_PIN_INDEX_FEED_HOLD))
-          bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
-      #else
-        if (bit_istrue(pin, CONTROL_PIN_INDEX_FEED_HOLD))
-          bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
-      #endif
     }
   }
 #endif // USE_CONTROL_ISR

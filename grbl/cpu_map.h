@@ -101,7 +101,7 @@
   #define CONTROL_INT_vect  PCINT2_vect
   #define CONTROL_PCMSK     PCMSK2 // Pin change interrupt register
   #define CONTROL_MASK      ((1<<CONTROL_RESET_BIT)|(1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_CYCLE_START_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT))
-
+  
   // Define probe switch input pin.
   #define PROBE_DDR       DDRK
   #define PROBE_PIN       PINK
@@ -349,7 +349,7 @@
     #else
       #define CONTROL_MASK      ((1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT))
     #endif
-
+    
     #ifndef GeckoBreakout_Variant
       #define CONTROL_CYCLE_START_DDR       DDRC
       #define CONTROL_CYCLE_START_PIN       PINC
