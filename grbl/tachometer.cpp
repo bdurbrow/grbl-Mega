@@ -15,7 +15,7 @@
 static unsigned int tachometer_count = 0; 
 static unsigned int tachometer_poll_count = 0; 
 
-const int TACHPULSE_PIN = 2;
+const int TACHPULSE_PIN = 11;
 
 void setup_tachometer(void){
     tachometer_count = 0;
