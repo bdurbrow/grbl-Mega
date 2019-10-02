@@ -47,6 +47,13 @@ int main(void)
   UISetup();
 
   memset(sys_position,0,sizeof(sys_position)); // Clear machine position.
+
+// setup the tachometer if it is enabled, do thi before interupts are enabled
+    #ifdef SPINDLE_TACHOMETER_PULSESREV 
+      setup_tachometer();
+    #endif
+
+
   sei(); // Enable interrupts
 
   // Initialize system state.

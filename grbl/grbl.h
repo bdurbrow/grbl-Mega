@@ -63,6 +63,9 @@
   #include "report.h"
   #include "serial.h"
   #include "spindle_control.h"
+    #ifdef SPINDLE_TACHOMETER_PULSESREV 
+       #include "tachometer.h"
+    #endif
   #include "stepper.h"
   #include "jog.h"
   #include "sleep.h"
