@@ -15,7 +15,7 @@
 
 extern void setup_tachometer(void);
 extern unsigned int poll_tachometer(void);
-extern void isr_tachometer(void);
+extern void pin_itr_tachometer(void);
 
 #endif
 
