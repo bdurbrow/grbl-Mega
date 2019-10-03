@@ -1,0 +1,30 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "command": "platformio",
+            "args": [
+                "device",
+                "monitor",
+                "--echo"
+            ],
+            "problemMatcher": [
+                "$platformio"
+            ],
+            "label": "PlatformIO: Monitor (local echo)",
+            "options": {
+                "env": {
+                    "PATH": "${env:HOME}/.platformio/penv/bin"
+                }
+            }
+        },
+        {
+            "type": "PlatformIO",
+            "task": "Monitor",
+            "problemMatcher": [
+                "$platformio"
+            ]
+        }
+    ]
+}
