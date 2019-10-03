@@ -45,7 +45,9 @@ unsigned int poll_tachometer(void){
 
 
 ISR(TIMER5_COMPA_vect){//timer5 interrupt 
-//generates pulse wave of frequency 8kHz/2 = 4kHz (takes two cycles for full wave- toggle high then toggle low)
+
+// This happens at 8khz rate
+
   tachometer_poll_count++;
   if(tachometer_poll_count >= 8000){
 
@@ -58,7 +60,7 @@ ISR(TIMER5_COMPA_vect){//timer5 interrupt
       tachometer_rpm_array[3] = tachometer_rpm_array[4];
       tachometer_rpm_array[4] = 60*tachometer_count;    
       
-      //Last 5 Average RPM Counts Eqauls....
+      //Last 5 Average RPM Counts Equals....
       tachometer_rpm = (
             tachometer_rpm_array[0] + 
             tachometer_rpm_array[1] + 
