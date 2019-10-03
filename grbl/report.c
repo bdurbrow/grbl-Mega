@@ -533,10 +533,11 @@ void report_realtime_status()
     printFloat_RateValue(st_get_realtime_rate());
     serial_write(',');
     printFloat(sys.spindle_speed,N_DECIMAL_RPMVALUE);
-    #ifdef SPINDLE_TACHOMETER_PULSESREV
-      serial_write(',');
-      printInteger(poll_tachometer());
-    #endif
+  #endif
+
+  #ifdef REPORT_FIELD_TACHOMETER_SPEED
+   printPgmString(PSTR("|RPM:"));
+   printInteger(poll_tachometer());
   #endif
 
   #ifdef REPORT_FIELD_PIN_STATE
