@@ -72,6 +72,9 @@ ISR(TIMER5_COMPA_vect){//timer5 interrupt
       // Reset counters
       tachometer_count=0;
       tachometer_poll_count=0; 
+      if(0){
+            printPgmString(PSTR("TICK"));
+      }
   }
 }
 
