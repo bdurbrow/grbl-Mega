@@ -107,6 +107,29 @@ uint8_t system_control_get_state()
         bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
     }
   }
+#else
+  void system_poll_control_pins()
+  {
+    static uint8_t previousPin = 0;
+    uint8_t pin = system_control_get_state();
+    if(previousPin != pin)
+    {
+      if (pin) {
+        if (bit_istrue(pin,CONTROL_PIN_INDEX_RESET))
+          mc_reset();
+        
+        if (bit_istrue(pin,CONTROL_PIN_INDEX_CYCLE_START))
+          system_set_exec_state_flag(EXEC_CYCLE_START);
+        
+        if (bit_istrue(pin, CONTROL_PIN_INDEX_FEED_HOLD))
+          system_set_exec_state_flag(EXEC_FEED_HOLD);
+        
+        if (bit_istrue(pin, CONTROL_PIN_INDEX_SAFETY_DOOR))
+          system_set_exec_state_flag(EXEC_SAFETY_DOOR);
+      }
+      previousPin = pin;
+    }
+  }
 #endif // USE_CONTROL_ISR
 
 // Returns if safety door is ajar(T) or closed(F), based on pin state.

@@ -10,6 +10,9 @@ void goToRPNCalculatorUIPage(void);
 void goToSystemMenu(void);
 
 void homeAllAxis(void);
+#if(defined(SQUARE_CLONED_X_AXIS) || defined(SQUARE_CLONED_Y_AXIS))
+  void squareClonedAxis(void);
+#endif
 void clearAlarm(void);
 void softReset(void);
 void goToToolDataUIPage(void);
@@ -35,6 +38,10 @@ UIMenu systemMenu[] =
 {
   { 0, NULL,                              "System Menu:       "     },
   { 0, homeAllAxis,                       "Home All Axis      "     },
+  #if(defined(SQUARE_CLONED_X_AXIS) || defined(SQUARE_CLONED_Y_AXIS))
+    { 0, squareClonedAxis,                "Square Axis      "       },
+  #endif
+  UIMenuSeparator,
   { 0, clearAlarm,                        "Clear Alarm        "     },
   { 0, softReset,                         "Soft Reset         "     },
   UIMenuSeparator,
@@ -141,7 +148,11 @@ UIMenu systemMenu[] =
 
   void homeAllAxis(void)
   {
-    // TODO: check that machine is idle before starting homing cycle.
+    if(sys.state != STATE_IDLE)
+    {
+      UIShowError(PSTR("      Not Idle.     "));
+      return;
+    }
 
     if(!UILineBufferIsAvailable())
     {
@@ -167,6 +178,51 @@ UIMenu systemMenu[] =
     UILineBufferState = UILineBufferState_ReadyForExecution;
     goToUIPage(&statusUIPage);
   }
+  
+  #if(defined(SQUARE_CLONED_X_AXIS) || defined(SQUARE_CLONED_Y_AXIS))
+    void squareClonedAxis_OK()
+    {
+      goToUIPage(&statusUIPage);
+    }
+  
+    void squareClonedAxis(void)
+    {
+      UIShowDialogPage(PSTR("  Squaring Axis...  "), NULL, NULL);
+
+    
+      if(sys.state != STATE_IDLE)
+      {
+        UIShowError(PSTR("      Not Idle.     "));
+        return;
+      }
+        
+      switch(limits_square_axis())
+      {
+        case LIMITS_AUTOSQUARING_ERROR_IN_ABORT:
+          UIShowError(PSTR("  In Abort State.   "));
+        break;
+        
+        case LIMITS_AUTOSQUARING_ERROR_NOT_IDLE:
+          UIShowError(PSTR("      Not Idle.     "));
+        break;
+        
+        case LIMITS_AUTOSQUARING_ERROR_NOT_HOME:
+          UIShowError(PSTR("      Not Home.     "));
+        break;
+        
+        case LIMITS_AUTOSQUARING_ERROR_CANCELED:
+          UIShowError(PSTR(" Squaring Canceled. "));
+        break;
+
+        case LIMITS_AUTOSQUARING_ERROR_FAILED:
+          UIShowError(PSTR("  Squaring Failed.  "));
+        break;
+
+        default:
+          UIShowDialogPage(PSTR("   Squaring Done.   "), squareClonedAxis_OK, squareClonedAxis_OK);
+      }
+    }
+  #endif
   
   void clearAlarm(void)
   {

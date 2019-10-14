@@ -9,9 +9,9 @@
       extern "C"{
     #endif
       
-      #define UILineBufferSize                      (40)
-      #define UILineBufferState_ReadyForExecution   (0xFE)
-      #define UILineBufferState_Busy                (0xFF)
+      #define UILineBufferSize                        (40)
+      #define UILineBufferState_ReadyForExecution     (0xFE)
+      #define UILineBufferState_Busy                  (0xFF)
       
       extern char UILineBuffer[UILineBufferSize];
       extern uint8_t UILineBufferState;
@@ -22,6 +22,13 @@
       // that the buffer is full of a command, is null-terminated, and is ready to be executed by protocol.c
       // UILineBufferState_Busy indicates that the buffer is currently being executed and is not available 
       // for the UI to use.
+      
+      #define UIExecuteGCode_Option_Default           (0x00)
+      #define UIExecuteGCode_Option_StartOfSequence   (0x01)
+      #define UIExecuteGCode_Option_ResetOnUserAbort  (0x02)
+      #define UIExecuteGCode_Option_Synchronous       (0x04)
+
+      extern uint8_t UIExecuteGCode(char *buffer, uint8_t options);
       
       void UISetup(void);
       void UITask(void);
@@ -122,6 +129,7 @@
 					
 					virtual void UIEncoderALeft(void);
 					virtual void UIEncoderARight(void);
+          virtual void UIEncoderButton1Pressed(void);
 				private:
 					void drawStatusLine(void);
 			};

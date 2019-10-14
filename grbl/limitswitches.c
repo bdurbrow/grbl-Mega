@@ -546,6 +546,107 @@ void limits_go_home(uint8_t cycle_mask)
   sys.step_control = STEP_CONTROL_NORMAL_OP; // Return step control to normal operation.
 }
 
+#if(defined(SQUARE_CLONED_X_AXIS) || defined(SQUARE_CLONED_Y_AXIS))
+  static inline __attribute__((always_inline)) bool limits_read_axis_squaring_switch()
+  {
+    return _PIN(AXIS_SQUARING_SWITCH_PORT) & (1 << AXIS_SQUARING_SWITCH_BIT);
+  }
+
+  static inline __attribute__((always_inline)) bool limits_step_cloned_axis(bool direction)
+  {
+  // Set the direction pins a couple of nanoseconds before we step the steppers
+    #ifdef CLONE_X_AXIS
+      if(direction)
+        CLONED_AXIS_DIRECTION_PORT(X) |= (1<<CLONED_AXIS_DIRECTION_BIT(X));
+      else
+        CLONED_AXIS_DIRECTION_PORT(X) &= ~(1<<CLONED_AXIS_DIRECTION_BIT(X));
+    #endif
+
+    #ifdef CLONE_Y_AXIS
+      if(direction)
+        CLONED_AXIS_DIRECTION_PORT(Y) |= (1<<CLONED_AXIS_DIRECTION_BIT(Y));
+      else
+        CLONED_AXIS_DIRECTION_PORT(Y) &= ~(1<<CLONED_AXIS_DIRECTION_BIT(Y));
+    #endif
+  
+    #ifdef STEP_PULSE_DELAY
+      delayMicros(STEP_PULSE_DELAY);
+    #endif
+
+    #ifdef CLONE_X_AXIS
+      CLONED_AXIS_STEP_PORT(X) |= (1<<CLONED_AXIS_STEP_BIT(X));
+    #endif
+    
+    #ifdef CLONE_Y_AXIS
+      CLONED_AXIS_STEP_PORT(Y) |= (1<<CLONED_AXIS_STEP_BIT(Y));
+    #endif
+    
+    delayMicros(settings.pulse_microseconds);
+    
+    #ifdef CLONE_X_AXIS
+      CLONED_AXIS_STEP_PORT(X) &= ~(1<<CLONED_AXIS_STEP_BIT(X));
+    #endif
+    
+    #ifdef CLONE_Y_AXIS
+      CLONED_AXIS_STEP_PORT(Y) &= ~(1<<CLONED_AXIS_STEP_BIT(Y));
+    #endif
+    
+    uint32_t end_ticks = clock_ticks() + CLONED_AXIS_SQUARING_STEP_DELAY;
+    while(clock_ticks() < end_ticks)
+    {
+      if(sys_rt_exec_state & (EXEC_SAFETY_DOOR | EXEC_RESET | EXEC_FEED_HOLD)) return false;
+      protocol_execute_realtime();
+    }
+    
+    return true;
+  }
+  
+  static inline __attribute__((always_inline)) uint8_t limits_square_axis_preflight(uint8_t axis)
+  {
+    if(sys.abort) return LIMITS_AUTOSQUARING_ERROR_IN_ABORT;
+    if(sys.state != STATE_IDLE) return LIMITS_AUTOSQUARING_ERROR_NOT_IDLE;
+    
+    int32_t axis_home_position;
+    #ifdef HOMING_FORCE_SET_ORIGIN
+      axis_home_position = 0;
+    #else
+      if ( bit_istrue(settings.homing_dir_mask,bit(axis)) )
+        axis_home_position = lround((settings.max_travel[axis]+settings.homing_pulloff)*settings.steps_per_mm[axis]);
+      else
+        axis_home_position = lround(-settings.homing_pulloff*settings.steps_per_mm[axis]);
+    #endif
+  
+    if(sys_position[axis] != axis_home_position) return LIMITS_AUTOSQUARING_ERROR_NOT_HOME;
+    
+    return LIMITS_AUTOSQUARING_OK;
+  }
+  
+  uint8_t limits_square_axis()
+  {
+  	uint8_t result;
+    #ifdef SQUARE_CLONED_X_AXIS
+      if((result = limits_square_axis_preflight(X_AXIS)) != LIMITS_AUTOSQUARING_OK) return result;
+    #endif
+    
+    #ifdef SQUARE_CLONED_Y_AXIS
+      if((result = limits_square_axis_preflight(Y_AXIS)) != LIMITS_AUTOSQUARING_OK) return result;
+    #endif
+        
+    for(uint16_t stepCounter=0; (limits_read_axis_squaring_switch()); stepCounter++)
+    {
+      if(stepCounter > CLONED_AXIS_SQUARING_MAX_STEPS) return LIMITS_AUTOSQUARING_ERROR_FAILED;
+      if(!limits_step_cloned_axis(true)) return LIMITS_AUTOSQUARING_ERROR_CANCELED;
+    }
+    
+    for(uint16_t stepCounter=0; (!limits_read_axis_squaring_switch()); stepCounter++)
+    {
+      if(stepCounter > CLONED_AXIS_SQUARING_MAX_STEPS) return LIMITS_AUTOSQUARING_ERROR_FAILED;
+      if(!limits_step_cloned_axis(false)) return LIMITS_AUTOSQUARING_ERROR_CANCELED;
+    }
+    
+    return LIMITS_AUTOSQUARING_OK;
+  }
+#endif
 
 // Performs a soft limit check. Called from mc_line() only. Assumes the machine has been homed,
 // the workspace volume is in all negative space, and the system is in normal operation.

@@ -111,7 +111,7 @@
 
   // Advanced Configuration Below You should not need to touch these variables
   // Set Timer up to use TIMER4B which is attached to Digital Pin 7
-  #define SPINDLE_PWM_MAX_VALUE     1024.0 // Translates to about 1.9 kHz PWM frequency at 1/8 prescaler
+  #define SPINDLE_PWM_MAX_VALUE     1024 // Translates to about 1.9 kHz PWM frequency at 1/8 prescaler
   #ifndef SPINDLE_PWM_MIN_VALUE
     #define SPINDLE_PWM_MIN_VALUE   1   // Must be greater than zero.
   #endif
@@ -125,8 +125,8 @@
   // 1/8 Prescaler, 16-bit Fast PWM mode
   #define SPINDLE_TCCRA_INIT_MASK ((1<<WGM40) | (1<<WGM41))
   #define SPINDLE_TCCRB_INIT_MASK ((1<<WGM42) | (1<<WGM43) | (1<<CS41)) 
-  #define SPINDLE_OCRA_REGISTER   OCR4A // 16-bit Fast PWM mode requires top reset value stored here.
-  #define SPINDLE_OCRA_TOP_VALUE  0x0400 // PWM counter reset value. Should be the same as PWM_MAX_VALUE in hex.
+  #define SPINDLE_TOP_REGISTER   OCR4A // 16-bit Fast PWM mode requires top reset value stored here.
+  #define SPINDLE_PWM_TOP_VALUE  0x0400 // PWM counter reset value. Should be the same as PWM_MAX_VALUE in hex.
 
   // Define spindle output pins.
   #define SPINDLE_PWM_DDR		DDRH
@@ -137,10 +137,10 @@
 
 #ifdef CPU_MAP_2560_RAMPS_BOARD // (Arduino Mega 2560) with Ramps 1.4 Board
 
-  // The GeckoBreakout board is almost identical to a RAMPS in pinouts.
+  // The Savanna boards are almost identical to a RAMPS in pinouts.
   // The primary difference is that there is a RS485 interface connected to the UART on pins D16 and D17;
   // and the LCD and control connectors have slightly different mappings.
-  // #define GeckoBreakout_Variant
+  // #define Savanna_Variant
 
   #include "nuts_bolts.h"
 
@@ -201,6 +201,15 @@
   #define CLONED_AXIS_DIRECTION_PORT(axis) _PORT(_CLONED_AXIS_DIRECTION_PORT(axis))
   #define CLONED_AXIS_DIRECTION_DDR(axis) _DDR(_CLONED_AXIS_DIRECTION_PORT(axis))
   #define CLONED_AXIS_DIRECTION_BIT(axis) CLONED_##axis##_AXIS_DIRECTION_BIT
+  
+  #if(defined(SQUARE_CLONED_X_AXIS) && defined(SQUARE_CLONED_Y_AXIS))
+    #error "Only one squaring axis is supported."
+  #endif
+  
+  #ifdef COREXY
+    #error "CoreXY kinematics are not supported with axis squaring."
+  #endif
+  
   
   // Define step direction output pins.
   #define DIRECTION_PORT_0 F
@@ -290,6 +299,13 @@
     #define MAX_LIMIT_PORT(i) _PORT(MAX_LIMIT_PORT_##i)
     #define MAX_LIMIT_PIN(i) _PIN(MAX_LIMIT_PORT_##i)
 
+    #if(defined(SQUARE_CLONED_X_AXIS) || defined(SQUARE_CLONED_Y_AXIS))
+    
+      #define AXIS_SQUARING_SWITCH_PORT D
+      #define AXIS_SQUARING_SWITCH_BIT 3 // Z Limit Min - Pin D18    
+    
+    #endif
+
   #endif
 
   //  #define LIMIT_INT       PCIE0  // Pin change interrupt enable pin
@@ -297,6 +313,12 @@
   //  #define LIMIT_PCMSK     PCMSK0 // Pin change interrupt register
   //  #define LIMIT_MASK ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)) // All limit bits
   #define DISABLE_HW_LIMITS
+
+  // Define Laser Mode Active output pin.
+  // #define USE_LASER_MODE_ACTIVE_OUTPUT
+  #define LASER_MODE_ACTIVE_OUTPUT_DDR  DDRF
+  #define LASER_MODE_ACTIVE_OUTPUT_PORT PORTF
+  #define LASER_MODE_ACTIVE_PIN_BIT     4 // MEGA2560 pin D58; on RAMPS 1.4 Aux 1
 
   // Define spindle enable and spindle direction output pins.
   #define SPINDLE_ENABLE_DDR      DDRG
@@ -339,18 +361,18 @@
     #define CONTROL_DDR       DDRL
     #define CONTROL_PIN       PINL
     #define CONTROL_PORT      PORTL
-    #ifndef GeckoBreakout_Variant
+    #ifndef Savanna_Variant
       #define CONTROL_RESET_BIT         2  // Pin D47 - RAMPS Aux 4 Port
     #endif
     #define CONTROL_FEED_HOLD_BIT     4  // Pin D45 - RAMPS Aux 4 Port
     #define CONTROL_SAFETY_DOOR_BIT   6  // Pin D43 - RAMPS Aux 4 Port
-    #ifndef GeckoBreakout_Variant
+    #ifndef Savanna_Variant
       #define CONTROL_MASK      ((1<<CONTROL_RESET_BIT)|(1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT))
     #else
       #define CONTROL_MASK      ((1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT))
     #endif
     
-    #ifndef GeckoBreakout_Variant
+    #ifndef Savanna_Variant
       #define CONTROL_CYCLE_START_DDR       DDRC
       #define CONTROL_CYCLE_START_PIN       PINC
       #define CONTROL_CYCLE_START_PORT      PORTC
@@ -371,13 +393,32 @@
   #define PROBE_BIT       3  // MEGA2560 Digital Pin 57; on RAMPS Aux 1
   #define PROBE_MASK      (1<<PROBE_BIT)
 
+  // Select the Spindle Drive Mode.
+  // If SPINDLE_RC_ESC_MODE is defined, the spindle PWM port outputs a RC ESC compatible signal;
+  // otherwise it outputs a true PWM waveform.
+  // #define SPINDLE_RC_ESC_MODE
+  
+  // Some RC ESCs need a delay between when power is applied to the system and when the control 
+  // signal is applied to the spindle speed pin. Comment this out to completely disable the delay;
+  // or specify approximately how many milliseconds to delay.
+  // #define SPINDLE_RC_ESC_BOOT_DELAY 3000
+
   // Advanced Configuration Below -- You should not need to touch these variables
   // Set Timer up to use TIMER4A which is attached to Digital Pin 6
-  #define SPINDLE_PWM_MAX_VALUE     1023.0 // Translates to about 1.9 kHz PWM frequency at 1/8 prescaler
-  #ifndef SPINDLE_PWM_MIN_VALUE
-  #define SPINDLE_PWM_MIN_VALUE     1   // Must be greater than zero.
+  #ifdef SPINDLE_RC_ESC_MODE
+    #define SPINDLE_PWM_MAX_VALUE     4000
+    #define SPINDLE_PWM_MIN_VALUE     2000
+    #define SPINDLE_PWM_OFF_VALUE     1800
+    #define SPINDLE_PWM_TOP_VALUE     40000
+  #else
+    #define SPINDLE_PWM_MAX_VALUE     1023 // Translates to about 1.9 kHz PWM frequency at 1/8 prescaler
   #endif
-  #define SPINDLE_PWM_OFF_VALUE     0
+  #ifndef SPINDLE_PWM_MIN_VALUE
+    #define SPINDLE_PWM_MIN_VALUE     1   // Must be greater than zero.
+  #endif
+  #ifndef SPINDLE_PWM_OFF_VALUE
+    #define SPINDLE_PWM_OFF_VALUE     0
+  #endif
   #define SPINDLE_PWM_RANGE         (SPINDLE_PWM_MAX_VALUE-SPINDLE_PWM_MIN_VALUE)
 
   //Control Digital Pin 6 which is Servo 2 signal pin on Ramps 1.4 board
@@ -385,16 +426,31 @@
   #define SPINDLE_TCCRB_REGISTER    TCCR4B
   #define SPINDLE_OCR_REGISTER      OCR4A
   #define SPINDLE_COMB_BIT          COM4A1
+  #ifdef SPINDLE_RC_ESC_MODE
+    #define SPINDLE_TOP_REGISTER    ICR4
+  #endif
 
-  // 1/8 Prescaler, 10-bit Fast PWM mode
-  #define SPINDLE_TCCRA_INIT_MASK ((1<<WGM40) | (1<<WGM41))
-  #define SPINDLE_TCCRB_INIT_MASK ((1<<WGM42) | (1<<CS41)) 
 
+  #ifdef SPINDLE_RC_ESC_MODE
+    // 1/8 Prescaler, 16-bit Fast PWM mode; ICR4 as TOP
+    #define SPINDLE_TCCRA_INIT_MASK (1<<WGM41)
+    #define SPINDLE_TCCRB_INIT_MASK ((1<<WGM42) | (1<<WGM43) | (1<<CS41)) 
+  #else
+    // 1/8 Prescaler, 10-bit Fast PWM mode
+    #define SPINDLE_TCCRA_INIT_MASK ((1<<WGM40) | (1<<WGM41))
+    #define SPINDLE_TCCRB_INIT_MASK ((1<<WGM42) | (1<<CS41)) 
+  #endif
+  
   // Define spindle output pins.
   #define SPINDLE_PWM_DDR   DDRH
   #define SPINDLE_PWM_PORT  PORTH
   #define SPINDLE_PWM_BIT   3 // MEGA2560 Digital Pin 6 
 
+  // Spindle Tachometer edge sensitivity. Enable one or both of these to have the spindle 
+  // tachometer react to the rising or falling edge of pulses on Arduino pin D11.
+  #define SPINDLE_TACHOMETER_RISING_EDGE
+  //#define SPINDLE_TACHOMETER_FALLING_EDGE
+  
   // If enabled, define the pin configuration for the SD interface.
   #ifdef USE_SD_SUPPORT
     #define SD_CHIPSELECT 53
@@ -406,18 +462,23 @@
     #define BEEPER 37 //[RAMPS14-SMART-ADAPTER]
   
   // Define the pin configuration for the LCD interface.
-    #ifndef GeckoBreakout_Variant
+    #ifdef Savanna_Variant
+      #define LCD_PIN_RS 24 //[Savanna_Variant]
+      #define LCD_PIN_EN 25 //[Savanna_Variant]
+      #define LCD_PIN_D4 29 //[Savanna_Variant]
+      #define LCD_PIN_D5 27 //[Savanna_Variant]
+      #define LCD_PIN_D6 32 //[Savanna_Variant]
+      #define LCD_PIN_D7 39 //[Savanna_Variant]
+    #else
+      // Standard RAMPS pin mapping
       #define LCD_PIN_RS 16 //[RAMPS14-SMART-ADAPTER]
       #define LCD_PIN_EN 17 //[RAMPS14-SMART-ADAPTER]
-    #else
-      #define LCD_PIN_RS 39 //[GeckoBreakout_Variant]
-      #define LCD_PIN_EN 32 //[GeckoBreakout_Variant]
+      #define LCD_PIN_D4 23 //[RAMPS14-SMART-ADAPTER]
+      #define LCD_PIN_D5 25 //[RAMPS14-SMART-ADAPTER]
+      #define LCD_PIN_D6 27 //[RAMPS14-SMART-ADAPTER]
+      #define LCD_PIN_D7 29 //[RAMPS14-SMART-ADAPTER]
     #endif
     
-    #define LCD_PIN_D4 23 //[RAMPS14-SMART-ADAPTER]
-    #define LCD_PIN_D5 25 //[RAMPS14-SMART-ADAPTER]
-    #define LCD_PIN_D6 27 //[RAMPS14-SMART-ADAPTER]
-    #define LCD_PIN_D7 29 //[RAMPS14-SMART-ADAPTER]
     
     // The command execution time for the LCD, in microseconds.
     // If your LCD is not working, try increasing this value.

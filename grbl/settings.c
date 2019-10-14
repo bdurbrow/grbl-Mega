@@ -198,6 +198,13 @@ uint8_t read_global_settings() {
 
 // A helper method to set settings from command line
 uint8_t settings_store_global_setting(uint8_t parameter, float value) {
+  if ( (parameter == 255) && (value == 1) )
+  {
+    // Store the settings in EEPROM.
+    write_global_settings();
+    return(STATUS_OK);
+  }
+
   if (value < 0.0) { return(STATUS_NEGATIVE_VALUE); }
   if (parameter >= AXIS_SETTINGS_START_VAL) {
     // Store axis configuration. Axis numbering sequence set by AXIS_SETTING defines.
@@ -294,14 +301,22 @@ uint8_t settings_store_global_setting(uint8_t parameter, float value) {
       case 30: settings.rpm_max = value; spindle_init(); break; // Re-initialize spindle rpm calibration
       case 31: settings.rpm_min = value; spindle_init(); break; // Re-initialize spindle rpm calibration
       case 32:
-        if (int_value) { settings.flags |= BITFLAG_LASER_MODE; }
-        else { settings.flags &= ~BITFLAG_LASER_MODE; }
+        if (int_value) {
+          settings.flags |= BITFLAG_LASER_MODE;
+          #ifdef USE_LASER_MODE_ACTIVE_OUTPUT
+            LASER_MODE_ACTIVE_OUTPUT_PORT |= (1<<LASER_MODE_ACTIVE_PIN_BIT);
+          #endif
+        } else {
+          settings.flags &= ~BITFLAG_LASER_MODE;
+          #ifdef USE_LASER_MODE_ACTIVE_OUTPUT
+            LASER_MODE_ACTIVE_OUTPUT_PORT &= ~(1<<LASER_MODE_ACTIVE_PIN_BIT);
+          #endif
+        }
         break;
       default:
         return(STATUS_INVALID_STATEMENT);
     }
   }
-  write_global_settings();
   return(STATUS_OK);
 }
 
@@ -313,6 +328,14 @@ void settings_init() {
     settings_restore(SETTINGS_RESTORE_ALL); // Force restore all EEPROM data.
     report_grbl_settings();
   }
+  #ifdef USE_LASER_MODE_ACTIVE_OUTPUT
+    LASER_MODE_ACTIVE_OUTPUT_DDR |= 1<<LASER_MODE_ACTIVE_PIN_BIT;
+    if(settings.flags & BITFLAG_LASER_MODE) {
+      LASER_MODE_ACTIVE_OUTPUT_PORT |= (1<<LASER_MODE_ACTIVE_PIN_BIT);
+    } else {
+      LASER_MODE_ACTIVE_OUTPUT_PORT &= ~(1<<LASER_MODE_ACTIVE_PIN_BIT);
+    }
+  #endif
 }
 
 

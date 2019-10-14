@@ -20,6 +20,100 @@ uint8_t UILineBufferState = 0;
 char editBuffer[10];
 uint8_t editBufferState;
 
+#ifdef UI_SPINDLE_LOAD
+  uint8_t spindleLoadADCValue;
+  uint8_t spindleLoadUpdatePhase;
+#endif
+
+#ifdef DISPLAY_AXIS_VELOCITY
+  float velocity;
+  float previousMachinePosition[N_AXIS];
+  uint32_t previousMachinePosition_timestamp;
+  uint32_t machinePositionClockTicks;           // Holds the number of ticks elapsed between machine position updates.
+  float machinePositionDeltaSqr[N_AXIS];        // Holds the distance travled on each axis, squared. First step in determining the scalar distance travled.
+#endif
+
+uint8_t UIExecuteGCode(char *buffer, uint8_t options)
+{
+  if(options & UIExecuteGCode_Option_StartOfSequence)
+  {
+    switch (sys.state)
+    {
+      case STATE_IDLE:
+      case STATE_CHECK_MODE:
+      case STATE_JOG:
+        break;
+      default:
+        return STATUS_IDLE_ERROR;
+    }
+  }
+  
+  // Check for failure conditions
+    if(sys_rt_exec_state & EXEC_SAFETY_DOOR) return STATUS_CHECK_DOOR;
+    if((sys_rt_exec_state & EXEC_RESET) || sys.abort) return STATUS_RESET;
+    if(sys_rt_exec_state & EXEC_FEED_HOLD) return STATUS_USER_ABORT;
+  
+    // Poll UI Encoder Button 2
+    #ifdef UI_ENCODER_A_PINBTN2_ACTIVE_LOW
+      if(!fastDigitalRead(UI_ENCODER_A_PINBTN2))
+    #else
+      if(fastDigitalRead(UI_ENCODER_A_PINBTN2))
+    #endif
+      {
+        if(options & UIExecuteGCode_Option_ResetOnUserAbort) mc_reset();
+        return STATUS_USER_ABORT;
+      }
+
+
+  uint8_t result;
+
+  if(buffer[0] == '$')
+    result = system_execute_line(buffer);
+  else
+    result = gc_execute_line(buffer);
+  
+  if(result) return result;
+  
+  // If system is queued, ensure cycle resumes if the auto start flag is present.
+  protocol_auto_cycle_start();
+  
+  if(options & UIExecuteGCode_Option_Synchronous)
+  {
+    do
+    {
+      protocol_execute_realtime();   // Check and execute run-time commands
+    
+      // Check for failure conditions
+        if(sys_rt_exec_state & EXEC_SAFETY_DOOR) return STATUS_CHECK_DOOR;
+        if((sys_rt_exec_state & EXEC_RESET) || sys.abort) return STATUS_RESET;
+        if(sys_rt_exec_state & EXEC_FEED_HOLD) return STATUS_USER_ABORT;
+    
+        // Poll UI Encoder Button 2
+        #ifdef UI_ENCODER_A_PINBTN2_ACTIVE_LOW
+          if(!fastDigitalRead(UI_ENCODER_A_PINBTN2))
+        #else
+          if(fastDigitalRead(UI_ENCODER_A_PINBTN2))
+        #endif
+          {
+            if(options & UIExecuteGCode_Option_ResetOnUserAbort) mc_reset();
+            return STATUS_USER_ABORT;
+          }
+    } while (plan_get_current_block() || (sys.state == STATE_CYCLE));
+  }
+}
+
+static inline void readPosition_MachinePosition(float *position, uint32_t *timestamp) // Position is an array of floats, N_AXIS large.
+{
+  int32_t current_position[N_AXIS]; // Copy current state of the system position variable
+  uint8_t oldSREG = SREG;
+  cli();
+    memcpy(current_position,sys_position,sizeof(sys_position));
+    *timestamp = clock_ticks_counter;
+  SREG = oldSREG;
+    
+  system_convert_array_steps_to_mpos(position, current_position);
+}
+
 static inline float readAxisPosition_MachinePosition(uint8_t axisIndex)
 {
   int32_t current_position[N_AXIS]; // Copy current state of the system position variable
@@ -74,6 +168,9 @@ static inline float readAxisPosition_WorkPosition(uint8_t axisIndex)
 #define UI_RUN_INDICATOR_CHARACTER      ((uint8_t)4)
 #define UI_COOLANT_INDICATOR_CHARACTER  ((uint8_t)5)
 #define UI_BACKSLASH_CHARACTER          ((uint8_t)6)
+#define UI_HALFBAR_CHARACTER            ((uint8_t)7)
+#define UI_FULLBAR_CHARACTER            ((uint8_t)0xFF)
+
 
 
 #define JOG_KEYVALUE                'j'
@@ -89,12 +186,38 @@ static inline float readAxisPosition_WorkPosition(uint8_t axisIndex)
 #define SHIFT_KEYVALUE              's'
 
 
-const uint16_t PROGMEM keys[4][4] = {
-  {KEYVALUE('7', 'G'), KEYVALUE('8', 'X'), KEYVALUE('9', JOG_KEYVALUE), KEYVALUE(MENU_KEYVALUE, MDI_KEYVALUE) },
-  {KEYVALUE('4', 'M'), KEYVALUE('5', 'Y'), KEYVALUE('6', PROBEPOS_KEYVALUE), KEYVALUE(ENTER_KEYVALUE, SHIFTED_ENTER_KEYVALUE) },
-  {KEYVALUE('1', 'F'), KEYVALUE('2', 'Z'), KEYVALUE('3', PROBENEG_KEYVALUE), KEYVALUE(PARTZERO_KEYVALUE, SHIFTED_PARTZERO_KEYVALUE) },
-  {KEYVALUE('0', 'S'), KEYVALUE('.', 'L'), KEYVALUE('-', DELETE_KEYVALUE), KEYVALUE(SHIFT_KEYVALUE, SHIFT_KEYVALUE) }
-};
+#if(UI_KEYPAD_ORIENTATION == 0)
+  const uint16_t PROGMEM keys[4][4] = {
+    { KEYVALUE('7', 'G'), KEYVALUE('8', 'X'), KEYVALUE('9', JOG_KEYVALUE), KEYVALUE(MENU_KEYVALUE, MDI_KEYVALUE) },
+    { KEYVALUE('4', 'M'), KEYVALUE('5', 'Y'), KEYVALUE('6', PROBEPOS_KEYVALUE), KEYVALUE(ENTER_KEYVALUE, SHIFTED_ENTER_KEYVALUE) },
+    { KEYVALUE('1', 'F'), KEYVALUE('2', 'Z'), KEYVALUE('3', PROBENEG_KEYVALUE), KEYVALUE(PARTZERO_KEYVALUE, SHIFTED_PARTZERO_KEYVALUE) },
+    { KEYVALUE('0', 'S'), KEYVALUE('.', 'L'), KEYVALUE('-', DELETE_KEYVALUE), KEYVALUE(SHIFT_KEYVALUE, SHIFT_KEYVALUE) }
+  };
+#endif
+#if(UI_KEYPAD_ORIENTATION == 90)
+  const uint16_t PROGMEM keys[4][4] = {
+    { KEYVALUE('0', 'S'), KEYVALUE('1', 'F'),  KEYVALUE('4', 'M'), KEYVALUE('7', 'G') },
+    { KEYVALUE('.', 'L'), KEYVALUE('2', 'Z'), KEYVALUE('5', 'Y'), KEYVALUE('8', 'X') },
+    { KEYVALUE('-', DELETE_KEYVALUE), KEYVALUE('3', PROBENEG_KEYVALUE), KEYVALUE('6', PROBEPOS_KEYVALUE), KEYVALUE('9', JOG_KEYVALUE)},
+    { KEYVALUE(SHIFT_KEYVALUE, SHIFT_KEYVALUE), KEYVALUE(PARTZERO_KEYVALUE, SHIFTED_PARTZERO_KEYVALUE), KEYVALUE(ENTER_KEYVALUE, SHIFTED_ENTER_KEYVALUE), KEYVALUE(MENU_KEYVALUE, MDI_KEYVALUE) }  
+  };
+#endif
+#if(UI_KEYPAD_ORIENTATION == 180)
+  const uint16_t PROGMEM keys[4][4] = {
+    { KEYVALUE(SHIFT_KEYVALUE, SHIFT_KEYVALUE), KEYVALUE('-', DELETE_KEYVALUE), KEYVALUE('.', 'L'), KEYVALUE('0', 'S') },
+    { KEYVALUE(PARTZERO_KEYVALUE, SHIFTED_PARTZERO_KEYVALUE), KEYVALUE('3', PROBENEG_KEYVALUE), KEYVALUE('2', 'Z'), KEYVALUE('1', 'F') },
+    { KEYVALUE(ENTER_KEYVALUE, SHIFTED_ENTER_KEYVALUE), KEYVALUE('6', PROBEPOS_KEYVALUE), KEYVALUE('5', 'Y'), KEYVALUE('4', 'M') },
+    { KEYVALUE(MENU_KEYVALUE, MDI_KEYVALUE), KEYVALUE('9', JOG_KEYVALUE), KEYVALUE('8', 'X'), KEYVALUE('7', 'G') }  
+  };
+#endif
+#if(UI_KEYPAD_ORIENTATION == 270)
+  const uint16_t PROGMEM keys[4][4] = {
+    { KEYVALUE(MENU_KEYVALUE, MDI_KEYVALUE), KEYVALUE(ENTER_KEYVALUE, SHIFTED_ENTER_KEYVALUE), KEYVALUE(PARTZERO_KEYVALUE, SHIFTED_PARTZERO_KEYVALUE), KEYVALUE(SHIFT_KEYVALUE, SHIFT_KEYVALUE) },
+    { KEYVALUE('9', JOG_KEYVALUE), KEYVALUE('6', PROBEPOS_KEYVALUE), KEYVALUE('3', PROBENEG_KEYVALUE), KEYVALUE('-', DELETE_KEYVALUE) },
+    { KEYVALUE('8', 'X'), KEYVALUE('5', 'Y'), KEYVALUE('2', 'Z'), KEYVALUE('.', 'L') },
+    { KEYVALUE('7', 'G'), KEYVALUE('4', 'M'), KEYVALUE('1', 'F'), KEYVALUE('0', 'S') }
+  };
+#endif
 Keypad keypad = Keypad(makeKeymap(keys));
 
 LiquidCrystal lcd;
@@ -196,6 +319,19 @@ AbstractUIPage *activeUIPage;
       0b00000
     };
     lcd.createChar(UI_BACKSLASH_CHARACTER, backslashCharacterImage);
+    
+    byte halfbarCharacterImage[8] = 
+    {
+      0b11100,
+      0b11000,
+      0b11100,
+      0b11000,
+      0b11100,
+      0b11000,
+      0b11100,
+      0b11000
+    };
+    lcd.createChar(UI_HALFBAR_CHARACTER, halfbarCharacterImage);
     
     activeUIPage=&statusUIPage;
     statusUIPage.display();
@@ -384,28 +520,35 @@ AbstractUIPage *activeUIPage;
 	
 	// Count how many phases are needed for UITask.
 	
-		#if( defined(UI_FEED_OVERRIDE_POTENTIOMETER) )
+		#ifdef UI_FEED_OVERRIDE_POTENTIOMETER
 			#define UITASK_FEED_OVERRIDE_POTENTIOMETER_PHASE (5)
 			#define UITASK_PHASE_CTR1	2
 		#else
 			#define UITASK_PHASE_CTR1	0
 		#endif
 	
-		#if( defined(UI_RAPID_OVERRIDE_POTENTIOMETER) )
+		#ifdef UI_RAPID_OVERRIDE_POTENTIOMETER
 			#define UITASK_RAPID_OVERRIDE_POTENTIOMETER_PHASE (5 + UITASK_PHASE_CTR1)
 			#define UITASK_PHASE_CTR2	2
 		#else
 			#define UITASK_PHASE_CTR2	0
 		#endif
 			
-		#if( defined(UI_SPINDLE_OVERRIDE_POTENTIOMETER) )
+		#ifdef UI_SPINDLE_OVERRIDE_POTENTIOMETER
 			#define UITASK_SPINDLE_OVERRIDE_POTENTIOMETER_PHASE (5 + UITASK_PHASE_CTR1 + UITASK_PHASE_CTR2)
 			#define UITASK_PHASE_CTR3	2
 		#else
 			#define UITASK_PHASE_CTR3	0
 		#endif
-			
-		#define UITASK_PHASE_COUNT	(5 + UITASK_PHASE_CTR1 + UITASK_PHASE_CTR2 + UITASK_PHASE_CTR3)
+		
+		#ifdef UI_SPINDLE_LOAD
+			#define UI_SPINDLE_LOAD_PHASE (5 + UITASK_PHASE_CTR1 + UITASK_PHASE_CTR2 + UITASK_PHASE_CTR3)
+			#define UITASK_PHASE_CTR4	2
+		#else
+			#define UITASK_PHASE_CTR4	0
+		#endif
+		
+		#define UITASK_PHASE_COUNT	(5 + UITASK_PHASE_CTR1 + UITASK_PHASE_CTR2 + UITASK_PHASE_CTR3 + UITASK_PHASE_CTR4)
 	
   void UITask(void)
   {
@@ -467,25 +610,7 @@ AbstractUIPage *activeUIPage;
 			case 1:
 				{
 					// Poll the control inputs.
-					static uint8_t previousPin = 0;
-					uint8_t pin = system_control_get_state();
-					if(previousPin != pin)
-					{
-            if (pin) {
-              if (bit_istrue(pin,CONTROL_PIN_INDEX_RESET))
-                mc_reset();
-              
-              if (bit_istrue(pin,CONTROL_PIN_INDEX_CYCLE_START))
-                system_set_exec_state_flag(EXEC_CYCLE_START);
-              
-              if (bit_istrue(pin, CONTROL_PIN_INDEX_FEED_HOLD))
-                bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
-              
-              if (bit_istrue(pin, CONTROL_PIN_INDEX_SAFETY_DOOR))
-                bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
-						}
-            previousPin = pin;
-					}
+					system_poll_control_pins();
 				}
 				break;
 				
@@ -622,7 +747,7 @@ AbstractUIPage *activeUIPage;
 				}
 				break;
 							
-			#if( defined(UI_FEED_OVERRIDE_POTENTIOMETER) )
+			#ifdef UI_FEED_OVERRIDE_POTENTIOMETER
 				case UITASK_FEED_OVERRIDE_POTENTIOMETER_PHASE:
 					{
 						analogStartConversion(UI_FEED_OVERRIDE_POTENTIOMETER, ADC_INTERNAL2V56, 8);
@@ -631,7 +756,7 @@ AbstractUIPage *activeUIPage;
 				case UITASK_FEED_OVERRIDE_POTENTIOMETER_PHASE + 1:
 					{
 						static int8_t previousFeedOverridePotValue = 0;
-						int8_t currentFeedOverridePotValue = (((int8_t)(analogRead_8bits() >> 1)) - 64);
+						int8_t currentFeedOverridePotValue = (((int8_t)(analogRead_8bits() >> 1)) - 64);												
 						if((currentFeedOverridePotValue > -2) && (currentFeedOverridePotValue < 2)) currentFeedOverridePotValue = 0; // "Snap" to zero.
 						if(abs(previousFeedOverridePotValue - currentFeedOverridePotValue) > 2)	// Adds some hysteresis to the reading to "de-noise" it somewhat.
 						{
@@ -651,7 +776,7 @@ AbstractUIPage *activeUIPage;
 					break;
 			#endif
 			
-			#if( defined(UI_RAPID_OVERRIDE_POTENTIOMETER) )
+			#ifdef UI_RAPID_OVERRIDE_POTENTIOMETER
 				case UITASK_RAPID_OVERRIDE_POTENTIOMETER_PHASE:
 					{
 						analogStartConversion(UI_RAPID_OVERRIDE_POTENTIOMETER, ADC_INTERNAL2V56, 8);
@@ -678,7 +803,7 @@ AbstractUIPage *activeUIPage;
 					break;
 			#endif
 			
-			#if( defined(UI_SPINDLE_OVERRIDE_POTENTIOMETER) )
+			#ifdef UI_SPINDLE_OVERRIDE_POTENTIOMETER
 				case UITASK_SPINDLE_OVERRIDE_POTENTIOMETER_PHASE:
 					{
 						analogStartConversion(UI_SPINDLE_OVERRIDE_POTENTIOMETER, ADC_INTERNAL2V56, 8);
@@ -706,6 +831,29 @@ AbstractUIPage *activeUIPage;
 					}
 					break;
 			#endif
+			
+			#ifdef UI_SPINDLE_LOAD
+				case UI_SPINDLE_LOAD_PHASE:
+					{
+					  if(!spindleLoadUpdatePhase)
+					  {
+              analogStartConversion(UI_SPINDLE_LOAD, ADC_INTERNAL2V56, 8);
+						  spindleLoadUpdatePhase = 7;
+						}
+						else
+						{
+              spindleLoadUpdatePhase--;
+              uiTaskPhase++;
+						}
+					}
+					break;
+				case UI_SPINDLE_LOAD_PHASE + 1:
+					{
+						spindleLoadADCValue = analogRead_8bits();
+					}
+					break;
+			#endif
+
 		}
 		
 		if(++uiTaskPhase >= UITASK_PHASE_COUNT) uiTaskPhase = 0;
@@ -736,6 +884,7 @@ AbstractUIPage *activeUIPage;
   static inline void renderXDROText(void)
   {
     float value = readAxisPosition_WorkPosition(X_AXIS);
+    if(gc_state.modal.units) value *= (1.0/25.4);
     DROTextBuffer[0] = 'X';
     sPrintFloatRightJustified(&DROTextBuffer[1], 9, value, 4);
   }
@@ -743,6 +892,7 @@ AbstractUIPage *activeUIPage;
   static inline void renderYDROText(void)
   {
     float value = readAxisPosition_WorkPosition(Y_AXIS);
+    if(gc_state.modal.units) value *= (1.0/25.4);
     DROTextBuffer[0] = 'Y';
     sPrintFloatRightJustified(&DROTextBuffer[1], 9, value, 4);
   }
@@ -750,6 +900,7 @@ AbstractUIPage *activeUIPage;
   static inline void renderZDROText(void)
   {
     float value = readAxisPosition_WorkPosition(Z_AXIS);
+    if(gc_state.modal.units) value *= (1.0/25.4);
     DROTextBuffer[0] = 'Z';
     sPrintFloatRightJustified(&DROTextBuffer[1], 9, value, 4);
   }
@@ -853,7 +1004,7 @@ AbstractUIPage *activeUIPage;
   static inline void renderGCGroup_FeedRate_DROText(void)
   {
 		DROTextBuffer[0] = 'F';
-    sPrintFloatRightJustified(&DROTextBuffer[1], 8, gc_state.feed_rate, 0);
+    sPrintFloatRightJustified(&DROTextBuffer[1], 8, ((gc_state.modal.units)?(gc_state.feed_rate*(1.0/25.4)):(gc_state.feed_rate)), 0);
 		DROTextBuffer[9] = ' ';
   }
   
@@ -1069,77 +1220,140 @@ AbstractUIPage *activeUIPage;
       DROUpdatePhase = 0;
   }
   
+  //           01234567890
+  //  01234567890123456789
+  // "  Rapid: 100% (1234)
+  // "  Rapid: 100%(12345)
   static inline void renderRapidOverrideDROText(void)
-  {
-    if(sys.r_override < 100) itoa(sys.r_override, DROTextBuffer, 10);
+  {    
+    float adjustedRapidRate;
+    if(sys.r_override < 100)
+    {
+      DROTextBuffer[0] = ' ';
+      itoa(sys.r_override, DROTextBuffer + 1, 10);
+      adjustedRapidRate = UI_RAPID_OVERRIDE_NOMINAL_MAX_RATE * (sys.r_override * 0.01);
+    }
+    else
+    {
+      // Rapids greater than 100% shouldn't be possible, so...
+      DROTextBuffer[0] = '1';
+      DROTextBuffer[1] = '0';
+      DROTextBuffer[2] = '0';
+      adjustedRapidRate = UI_RAPID_OVERRIDE_NOMINAL_MAX_RATE;
+    }
+    
+    DROTextBuffer[3] = '%';
+    
+    if(gc_state.modal.units) adjustedRapidRate *= (1.0/25.4);
+    if(adjustedRapidRate < 10000.0)
+    {
+      DROTextBuffer[4] = ' ';
+      DROTextBuffer[5] = '(';
+      sPrintFloatRightJustified(&DROTextBuffer[6], 4, adjustedRapidRate, 0);
+      DROTextBuffer[10] = ')';
+    }
+    else
+    {
+      DROTextBuffer[4] = '(';
+      sPrintFloatRightJustified(&DROTextBuffer[5], 5, adjustedRapidRate, 0);
+      DROTextBuffer[10] = ')';
+    }
   }
   
   static inline void drawRapidOverrideDROText(void)
   {
-    lcd.setCursor(0,1);
-    lcd.write_p(PSTR("    Rapid: "));
-    if(sys.r_override < 100)
+    lcd.setCursor(9,1);
+    lcd.write(DROTextBuffer, 11);
+  }
+  
+  //           01234567890
+  //  01234567890123456789
+  // "   Feed: 100% (1234)
+  // "   Feed: 100%(12345)
+  static inline void renderFeedOverrideDROText(void)
+  {    
+    if(sys.f_override < 100)
     {
-      lcd.write(' ');
-      lcd.write(DROTextBuffer, 2);
+      DROTextBuffer[0] = ' ';
+      itoa(sys.f_override, DROTextBuffer + 1, 10);
     }
     else
     {
-      lcd.write_p(PSTR("100"));
+      itoa(sys.f_override, DROTextBuffer, 10);
     }
-    lcd.write('%');
-
-    lcd.writeMultiple(' ', 5); 
-  }
-  
-  static inline void renderFeedOverrideDROText(void)
-  {
-    itoa(sys.f_override, DROTextBuffer, 10);
+    
+    DROTextBuffer[3] = '%';
+    
+    float adjustedFeedRate = gc_state.feed_rate * (sys.f_override * 0.01);
+    if(gc_state.modal.units) adjustedFeedRate *= (1.0/25.4);
+    if(adjustedFeedRate < 10000.0)
+    {
+      DROTextBuffer[4] = ' ';
+      DROTextBuffer[5] = '(';
+      sPrintFloatRightJustified(&DROTextBuffer[6], 4, adjustedFeedRate, 0);
+      DROTextBuffer[10] = ')';
+    }
+    else
+    {
+      DROTextBuffer[4] = '(';
+      sPrintFloatRightJustified(&DROTextBuffer[5], 5, adjustedFeedRate, 0);
+      DROTextBuffer[10] = ')';
+    }
   }
   
   static inline void drawFeedOverrideDROText(void)
   {
-    lcd.setCursor(0,2);
-    lcd.write_p(PSTR("     Feed: "));
-    if(sys.f_override < 100)
+    lcd.setCursor(9,2);
+    lcd.write(DROTextBuffer, 11);
+  }
+  
+  //           01234567890
+  //  01234567890123456789
+  // "Spindle: 100% (1234)
+  // "Spindle: 100%(12345)
+  static inline void renderSpindleOverrideDROText(void)
+  {    
+    if(sys.spindle_speed_ovr < 100)
     {
-      lcd.write(' ');
-      lcd.write(DROTextBuffer, 2);
+      DROTextBuffer[0] = ' ';
+      itoa(sys.spindle_speed_ovr, DROTextBuffer + 1, 10);
     }
     else
     {
-      lcd.write(DROTextBuffer, 3);
+      itoa(sys.spindle_speed_ovr, DROTextBuffer, 10);
     }
-    lcd.write('%');
-
-    lcd.writeMultiple(' ', 5); 
-  }
-  
-  static inline void renderSpindleOverrideDROText(void)
-  {
-    itoa(sys.spindle_speed_ovr, DROTextBuffer, 10);
+    
+    DROTextBuffer[3] = '%';
+    
+    float adjustedSpindleSpeeed = gc_state.spindle_speed * (sys.spindle_speed_ovr * 0.01);
+    if(adjustedSpindleSpeeed < 10000.0)
+    {
+      DROTextBuffer[4] = ' ';
+      DROTextBuffer[5] = '(';
+      sPrintFloatRightJustified(&DROTextBuffer[6], 4, adjustedSpindleSpeeed, 0);
+      DROTextBuffer[10] = ')';
+    }
+    else
+    {
+      DROTextBuffer[4] = '(';
+      sPrintFloatRightJustified(&DROTextBuffer[5], 5, adjustedSpindleSpeeed, 0);
+      DROTextBuffer[10] = ')';
+    }
   }
   
   static inline void drawSpindleOverrideDROText(void)
   {
-    lcd.setCursor(0,3);
-    lcd.write_p(PSTR("  Spindle: "));
-    if(sys.spindle_speed_ovr < 100)
-    {
-      lcd.write(' ');
-      lcd.write(DROTextBuffer, 2);
-    }
-    else
-    {
-      lcd.write(DROTextBuffer, 3);
-    }
-    lcd.write('%');
-    
-    lcd.writeMultiple(' ', 5); 
+    lcd.setCursor(9,3);
+    lcd.write(DROTextBuffer, 11);
   }
   
   static inline void displayOverrideDRO(void)
   {
+                                        //01234567890123456789
+    lcd.setCursor(0,1); lcd.write_p(PSTR("  Rapid: "));
+    lcd.setCursor(0,2); lcd.write_p(PSTR("   Feed: "));
+    lcd.setCursor(0,3); lcd.write_p(PSTR("Spindle: "));
+  
     renderRapidOverrideDROText(); drawRapidOverrideDROText();
     renderFeedOverrideDROText();  drawFeedOverrideDROText();
     renderSpindleOverrideDROText(); drawSpindleOverrideDROText();
@@ -1161,6 +1375,194 @@ AbstractUIPage *activeUIPage;
     if(DROUpdatePhase >= 6)
       DROUpdatePhase = 0;
   }
+  
+  #ifdef UI_SPINDLE_LOAD
+    #define defined_UI_SPINDLE_LOAD (1)
+  #else
+    #define defined_UI_SPINDLE_LOAD (0)
+  #endif
+  
+  #ifdef DISPLAY_SPINDLE_TACHOMETER_RPM
+    #define defined_DISPLAY_SPINDLE_TACHOMETER_RPM (1)
+  #else
+    #define defined_DISPLAY_SPINDLE_TACHOMETER_RPM (0)
+  #endif
+  
+  #ifdef DISPLAY_AXIS_VELOCITY
+    #define defined_DISPLAY_AXIS_VELOCITY (1)
+  #else
+    #define defined_DISPLAY_AXIS_VELOCITY (0)
+  #endif
+  
+  
+  #define UI_SPINDLE_TACHOMETER_LCD_LINE  (defined_UI_SPINDLE_LOAD?2:1)
+  #define UI_VELOCITY_LCD_LINE            (defined_DISPLAY_SPINDLE_TACHOMETER_RPM?(defined_UI_SPINDLE_LOAD?3:2):(defined_UI_SPINDLE_LOAD?2:1))
+  #define UI_VELOCITY_DRO_LINE_COUNT      ((defined_UI_SPINDLE_LOAD?1:0) + (defined_DISPLAY_SPINDLE_TACHOMETER_RPM?1:0) + (defined_DISPLAY_AXIS_VELOCITY?1:0))
+  
+  #define UI_SPINDLE_TACHOMETER_DRO_PHASE (defined_UI_SPINDLE_LOAD?2:0)
+  #define UI_VELOCITY_DRO_PHASE           (defined_DISPLAY_SPINDLE_TACHOMETER_RPM?(defined_UI_SPINDLE_LOAD?4:2):(defined_UI_SPINDLE_LOAD?2:0))
+  #define UI_VELOCITY_DRO_PHASE_COUNT     ((defined_UI_SPINDLE_LOAD?2:0) + (defined_DISPLAY_SPINDLE_TACHOMETER_RPM?2:0) + (defined_DISPLAY_AXIS_VELOCITY?4:0))
+  
+  #ifdef UI_SPINDLE_LOAD
+  
+    static inline void renderSpindleLoadDROText(void)
+    {
+      uint8_t bars;
+      uint8_t fullBars;
+      uint8_t cursor = 0;
+      bool overload = false;
+      
+      if(spindleLoadADCValue < UI_SPINDLE_LOAD_OFFSET)
+      {
+        bars = 0;
+        fullBars = 0;
+      }
+      else
+      {
+        bars = ((spindleLoadADCValue - UI_SPINDLE_LOAD_OFFSET) * UI_SPINDLE_LOAD_SCALING_MULTIPLIER);
+        if(bars > 10)
+        {
+          bars = 10; 
+          overload = true;
+        }
+        fullBars = (bars & 0x0E) >> 1;
+      }
+      for(; cursor < fullBars; cursor++) DROTextBuffer[cursor] = UI_FULLBAR_CHARACTER;
+      if(overload) { DROTextBuffer[cursor] = '!'; cursor++; };
+      if(bars & 0x01) DROTextBuffer[cursor++] = UI_HALFBAR_CHARACTER;
+      if(cursor == 0) { DROTextBuffer[0] = '['; cursor++; };
+      for(; cursor < 7; cursor++) DROTextBuffer[cursor] = ' ';
+    }  
+  
+    static inline void drawSpindleLoadDROText(void)
+    {
+      lcd.setCursor(14,1);
+      lcd.write(DROTextBuffer, 6);
+    }  
+  
+  #endif
+  
+  #if( defined(USE_SPINDLE_TACHOMETER) && defined(DISPLAY_SPINDLE_TACHOMETER_RPM) )
+  
+    static inline void renderSpindleRPMDROText(void)
+    {
+      static float previousRPM = 0.0;
+      float RPM = spindle_tachometer_calculate_RPM();
+      sPrintFloatRightJustified(&DROTextBuffer[0], 6, (RPM + previousRPM) * 0.5, 0);
+      previousRPM = RPM;
+    }
+  
+    static inline void drawSpindleRPMDROText(void)
+    {
+      lcd.setCursor(14,UI_SPINDLE_TACHOMETER_LCD_LINE);
+      lcd.write(DROTextBuffer, 6);
+    }
+  
+  #endif
+  
+  #ifdef DISPLAY_AXIS_VELOCITY
+  
+    static inline void calculateVelocityPhase1(void)
+    {
+      float currentMachinePosition[N_AXIS];
+      uint32_t currentMachinePosition_timestamp;
+      readPosition_MachinePosition(currentMachinePosition, &currentMachinePosition_timestamp);
+      
+      if((currentMachinePosition_timestamp - previousMachinePosition_timestamp) < 300)
+      {
+        DROUpdatePhase = UI_VELOCITY_DRO_PHASE_COUNT;
+        return;
+      }
+      
+      for(uint8_t axis = 0; axis < N_AXIS; axis++)
+      {
+        machinePositionDeltaSqr[axis] = fabs(previousMachinePosition[axis]-currentMachinePosition[axis]);
+        machinePositionDeltaSqr[axis] = machinePositionDeltaSqr[axis] * machinePositionDeltaSqr[axis];
+        
+        previousMachinePosition[axis] = currentMachinePosition[axis];
+      }
+      
+      machinePositionClockTicks = currentMachinePosition_timestamp - previousMachinePosition_timestamp;
+      previousMachinePosition_timestamp = currentMachinePosition_timestamp;
+    }
+  
+    static inline void calculateVelocityPhase2(void)
+    {
+      float sum = 0.0;
+      for(uint8_t axis = 0; axis < N_AXIS; axis++) sum += machinePositionDeltaSqr[axis];
+    
+      velocity = (sqrt(sum)/(machinePositionClockTicks * (1.0/976.0))) * 60.0;
+      if(gc_state.modal.units) velocity *= (1.0/25.4);
+    }
+  
+    static inline void renderVelocityDROText(void)
+    {
+      sPrintFloatRightJustified(&DROTextBuffer[0], 6, velocity, ((velocity>=10000)?0:1));
+    }
+  
+    static inline void drawVelocityDROText(void)
+    {
+      lcd.setCursor(14,UI_VELOCITY_LCD_LINE);
+      lcd.write(DROTextBuffer, 6);
+    }
+  
+  #endif
+  
+  #if(UI_VELOCITY_DRO_LINE_COUNT > 0)
+  
+    static inline void displayVelocityDRO(void)
+    {                                                                     //01234567890123456789
+
+      #ifdef UI_SPINDLE_LOAD
+        lcd.setCursor(0,1);                               lcd.write_p(PSTR("Spindle Load:       "));
+      #endif
+    
+      #if( defined(USE_SPINDLE_TACHOMETER) && defined(DISPLAY_SPINDLE_TACHOMETER_RPM) )
+        lcd.setCursor(0,UI_SPINDLE_TACHOMETER_LCD_LINE);  lcd.write_p(PSTR(" Spindle RPM:       "));
+      #endif
+    
+      #ifdef DISPLAY_AXIS_VELOCITY
+        lcd.setCursor(0,UI_VELOCITY_LCD_LINE);            lcd.write_p(PSTR("    Velocity:       "));
+        readPosition_MachinePosition(previousMachinePosition, &previousMachinePosition_timestamp);
+      #endif
+    
+      #if(UI_VELOCITY_DRO_LINE_COUNT < 2)
+        lcd.setCursor(0,2); lcd.writeMultiple(' ', 20); 
+      #endif
+
+      #if(UI_VELOCITY_DRO_LINE_COUNT < 3)
+        lcd.setCursor(0,3); lcd.writeMultiple(' ', 20); 
+      #endif
+    }
+  
+    static inline void updateVelocityDRO(void)
+    {
+      switch (DROUpdatePhase)
+      {
+        #ifdef UI_SPINDLE_LOAD
+          case 0:                                   renderSpindleLoadDROText(); break;
+          case 1:                                   drawSpindleLoadDROText(); break;
+        #endif
+
+        #if( defined(USE_SPINDLE_TACHOMETER) && defined(DISPLAY_SPINDLE_TACHOMETER_RPM) )
+          case UI_SPINDLE_TACHOMETER_DRO_PHASE:     renderSpindleRPMDROText(); break;
+          case UI_SPINDLE_TACHOMETER_DRO_PHASE + 1: drawSpindleRPMDROText(); break;
+        #endif
+        
+        #ifdef DISPLAY_AXIS_VELOCITY
+          case UI_VELOCITY_DRO_PHASE:               calculateVelocityPhase1(); break;
+          case UI_VELOCITY_DRO_PHASE + 1:           calculateVelocityPhase2(); break;
+          case UI_VELOCITY_DRO_PHASE + 2:           renderVelocityDROText(); break;
+          case UI_VELOCITY_DRO_PHASE + 3:           drawVelocityDROText();
+        #endif
+      }
+    
+      DROUpdatePhase++;
+      if(DROUpdatePhase >= UI_VELOCITY_DRO_PHASE_COUNT)
+        DROUpdatePhase = 0;
+    }
+    
+  #endif
   
 // AbstractUIPage
   void AbstractUIPage::activate(void) {}
@@ -1218,12 +1620,12 @@ AbstractUIPage *activeUIPage;
   
   void DialogUIPage::enterKeyPressed(void)
   {
-    okFunction();
+    if(okFunction) okFunction();
   }
   
   void DialogUIPage::UIEncoderButton2Pressed(void)
   {
-    cancelFunction();
+    if(cancelFunction) cancelFunction();
   }
 
 // ErrorUIPage
@@ -1263,6 +1665,8 @@ AbstractUIPage *activeUIPage;
   }
 
 // StatusUIPage
+  #define StatusUIPageSubPageCount  ((UI_VELOCITY_DRO_LINE_COUNT > 0)?4:3)
+
   void StatusUIPage::activate(void)
 	{
 		subPage = 0;
@@ -1285,6 +1689,12 @@ AbstractUIPage *activeUIPage;
   		case 2:
 				displayOverrideDRO();
   			break;
+
+ 		  #if(UI_VELOCITY_DRO_LINE_COUNT > 0)
+ 		    case 3:
+ 		      displayVelocityDRO();
+ 		      break;
+      #endif
   	}
   }
   
@@ -1333,6 +1743,12 @@ AbstractUIPage *activeUIPage;
   		case 2:
   		  updateOverrideDRO();
   		  break;
+  		
+ 		  #if(UI_VELOCITY_DRO_LINE_COUNT > 0)
+ 		    case 3:
+ 		      updateVelocityDRO();
+ 		      break;
+      #endif
   	}
   }
 
@@ -1382,17 +1798,29 @@ AbstractUIPage *activeUIPage;
   
     void StatusUIPage::UIEncoderALeft(void)
     {
-      if(subPage > 0) subPage--;
-			DROUpdatePhase = 0;
-			display();
+      if(subPage > 0)
+      {
+        subPage--;
+        DROUpdatePhase = 0;
+        display();
+      }
     }
     
     void StatusUIPage::UIEncoderARight(void)
     {
-			if(subPage < 2) subPage++;
-			DROUpdatePhase = 0;
-			display();
+			if(subPage < (StatusUIPageSubPageCount - 1))
+			{
+        subPage++;
+        DROUpdatePhase = 0;
+        display();
+      }
     }
+    
+    void StatusUIPage::UIEncoderButton1Pressed(void)
+    {
+    	menuUIPage.showMenu((UIMenuEntry *)mainMenu);
+    }
+
   
 // JogUIPage
 

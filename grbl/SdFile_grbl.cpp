@@ -633,7 +633,7 @@ int16_t SdFile::readGCodeLine(void* buf, uint16_t nbyte) {
   bool didReadOK = false;
   bool didReadCR = false;
   bool inParentheticalComment = false;
-  bool inSemicolonComment = false;
+  bool inLineComment = false;
   while (toRead > 0) {
     uint32_t block;  // raw device block number
     uint16_t offset = curPosition_ & 0X1FF;  // offset in block
@@ -698,7 +698,8 @@ int16_t SdFile::readGCodeLine(void* buf, uint16_t nbyte) {
           break;
         
         case ';':
-          inSemicolonComment = true;
+        case '%':
+          inLineComment = true;
           break;
           
         default:
@@ -708,7 +709,7 @@ int16_t SdFile::readGCodeLine(void* buf, uint16_t nbyte) {
           }
           
           if (  inParentheticalComment  ||    // Skip standard comments
-                inSemicolonComment      ||    // Skip semicolon comments (LinuxCNC style)
+                inLineComment           ||    // Skip full-line comments (LinuxCNC style)
                 (c <= ' ')                    // Throw away whitepace and control characters
              )
              break;

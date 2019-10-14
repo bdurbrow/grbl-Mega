@@ -63,6 +63,7 @@
   #include "report.h"
   #include "serial.h"
   #include "spindle_control.h"
+  #include "spindle_tachometer.h"  
   #include "stepper.h"
   #include "jog.h"
   #include "sleep.h"

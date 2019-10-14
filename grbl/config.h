@@ -136,6 +136,12 @@
 // define to force Grbl to always set the machine origin at the homed location despite switch orientation.
 // #define HOMING_FORCE_SET_ORIGIN // Uncomment to enable.
 
+// Sets the speed of cloned-axis auto-squaring, in ticks per step. There are 976 ticks per second.
+#define CLONED_AXIS_SQUARING_STEP_DELAY 2
+
+// Sets the maximum number of steps to try to move the cloned axis when auto-squaring.
+#define CLONED_AXIS_SQUARING_MAX_STEPS 500
+
 // Number of blocks Grbl executes upon startup. These blocks are stored in EEPROM, where the size
 // and addresses are defined in settings.h. With the current settings, up to 2 startup blocks may
 // be stored and executed in order. These startup blocks would typically be used to set the g-code
@@ -631,6 +637,9 @@
 // Activate support for an LCD, quadrature encoder with pushbutton, and keypad user interface.
 #define USE_UI_SUPPORT
 
+  // UI Keypad orientation. Must be 0, 90, 180, or 270.
+  #define UI_KEYPAD_ORIENTATION 180
+
 	// Activate support for a second quadrature encoder used for jogging
 	#define USE_UI_ENCODER_B
 	
@@ -657,15 +666,42 @@
 	
 	// If defined, this will enable the feed rate override potentiometer.
 	// The value specified is the ADC channel to be used. Input voltage range is 0 to 2.5 volts.
-	//#define UI_FEED_OVERRIDE_POTENTIOMETER		13
+	//#define UI_FEED_OVERRIDE_POTENTIOMETER		    13
 	
 	// If defined, this will enable the rapid rate override potentiometer.
 	// The value specified is the ADC channel to be used. Input voltage range is 0 to 2.5 volts.
-	//#define UI_RAPID_OVERRIDE_POTENTIOMETER		14
+	//#define UI_RAPID_OVERRIDE_POTENTIOMETER		    14
+	
+	// Specifies the nominal maximum rapid rate used on the rapid rate override DRO. Specified in MM/Min.
+	#define UI_RAPID_OVERRIDE_NOMINAL_MAX_RATE     500.0
 	
 	// If defined, this will enable the spindle rate override potentiometer.
 	// The value specified is the ADC channel to be used. Input voltage range is 0 to 2.5 volts.
-	//#define UI_SPINDLE_OVERRIDE_POTENTIOMETER		15
+	//#define UI_SPINDLE_OVERRIDE_POTENTIOMETER		  15
+	
+	// If defined, this will enable the spindle load input.
+	// The value specified is the ADC channel to be used.
+	// Input voltage range is 0 to 2.5 volts. Sensors with higher voltage ranges can be connected using a 
+	// resistor voltage divider.
+	//#define UI_SPINDLE_LOAD		          4
+	
+	// This value is subtracted from the raw ADC reading of the spindle load input to compensate for
+	// sensors that have their no-load output above ground.
+	#define UI_SPINDLE_LOAD_OFFSET      128
+	
+	// This value is used to scale the ADC reading (after the offset is applied) into a 0 to 10 value.
+	// This will need adjusting to match the specific sensor and spindle used.
+	#define UI_SPINDLE_LOAD_SCALING_MULTIPLIER      (0.25)
+
+  // Spindle Tachometer. Disable this to free up Arduino pin D11.
+	// Note that the spindle tachometer input edge sensitivity must be set up in cpu_map.h.
+  #define USE_SPINDLE_TACHOMETER
+	
+	// If defined, this will display the actual spindle RPM on the LCD.
+	#define DISPLAY_SPINDLE_TACHOMETER_RPM
+	
+	// If defined, this will display the actual current axis velocity on the LCD.
+	#define DISPLAY_AXIS_VELOCITY
 	
 	// If defined, this will display the number of lines read from the SD card on the LCD.
 	// Note that this is NOT the current line being executed; this counter runs ahead of the

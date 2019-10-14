@@ -83,7 +83,7 @@
 
 // Define Grbl axis settings numbering scheme. Starts at START_VAL, every INCREMENT, over N_SETTINGS.
 #define AXIS_N_SETTINGS          4
-#define AXIS_SETTINGS_START_VAL  100 // NOTE: Reserving settings values >= 100 for axis settings. Up to 255.
+#define AXIS_SETTINGS_START_VAL  100 // NOTE: Reserving settings values >= 100 for axis settings. Up to 254.
 #define AXIS_SETTINGS_INCREMENT  10  // Must be greater than the number of axis settings
 
 // Global persistent settings (Stored from byte EEPROM_ADDR_GLOBAL onwards)

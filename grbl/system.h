@@ -165,6 +165,12 @@ uint8_t system_control_get_state();
 // Returns if safety door is open or closed, based on pin state.
 uint8_t system_check_safety_door_ajar();
 
+// Polls the control inputs (cycle start; feed hold; safety door; etc).
+// Used when the control ISR is disabled.
+#ifndef USE_CONTROL_ISR
+  void system_poll_control_pins(); 
+#endif
+
 // Executes an internal system command, defined as a string starting with a '$'
 uint8_t system_execute_line(char *line);
 

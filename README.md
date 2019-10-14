@@ -34,7 +34,7 @@ Also, expect to have to check and modify config.h and cpu_map.h for your specifi
 
 ## Documentation:
 
-... needs to be written. For right now, there's some information in the UI Support folder, and also check out the config.h and cpu_map.h files for machine-specific setup.
+... needs to be written. For right now, there's some information in the UI Support folder, some in this repository's wiki, and also check out the config.h and cpu_map.h files for machine-specific setup.
 
 This image (from Reprap.org) may be helpful in figuring out what I/O pin is what:
 
@@ -42,10 +42,65 @@ https://reprap.org/mediawiki/images/c/ca/Arduinomega1-4connectors.png
 
 
 ## Compiling:
-The makefile is out-of-date. Use the Arduino IDE to compile this, in the same manner as the standard grbl distribution.
+Use the Arduino IDE to compile this; the main file is grbl.ino which is located in the grbl folder.
 
-https://github.com/gnea/grbl/wiki/Compiling-Grbl
 
+## October 2019 Update:
+
+* Compiling Grbl is now slightly different - it compiles like any other Arduino sketch. So; remove your old links to the Grbl folder from your Arduino libraries folder; and just open grbl.ino; select your board from the Tools menu, and click the "Upload" button.
+
+* A `platformio.ini` file has been added courtesy of Tim Hawkins. So, if you have PlatformIO installed and want to, you can use that also.
+
+* The makefile was completely out of date; and was not going to be fixed anytime soon. It has been removed. To build this the way that it's been tested, use the Arduino IDE; which is both free and cross-platform.
+
+* Storing system settings from the serial port is now a little bit different than the stock Grbl distribution. After you have configured your machine the way you want; send a $255=1 command via the serial port. This will save your settings to the EEPROM. Otherwise, any settings you change will only be changed in RAM, and will revert to the previous stored values upon the next reset/power cycle. Editing settings & storing them from the System menu works as before.
+
+* The override status display page now shows not only the percent override; but the actual values that will be applied. For example, if you have the spindle set to 1000 RPM, and have the spindle override set to 110%, the LCD will display `Spindle: 110% (1100)`. The display will be updated as the relevant parameters are updated.
+
+* Support for displaying the actual current velocity of the axes on the last page of the status display has been added. This can be disabled in the `config.h` file if you don't want it.
+
+* Support for a spindle tachometer has been added. This is mapped to Arduino pin D11; which is on the RAMPS 1.4 servo header. Configuration options for this are in both the `cpu_map.h` file (where you can set it up to ignore rising or falling edges of the input pulse) and the `config.h` file (where you can completely disable it if you don't have a tachometer sensor, or just disable display of the spindle RPM). This implementation is currently reading a little bit fast; but I wanted to get this update out the door - I intend to continue working on the core tachometer code to get it better. 
+
+* Support for an analog spindle load sensor has been added. The default configuration for this puts the input on Analog channel 4; which on a RAMPS 1.4 card is located on the AUX 1 header. This can be configured in the `config.h` file. By default this is disabled, but can be enabled by uncommenting the `#define UI_SPINDLE_LOAD 4` directive in `config.h`. Note that this pin is the same one used by default for the Laser mode output; and one or the other must be disabled, or different pins must be configured.  
+
+* Laser mode now has a pin that's turned on when active. By default, it's on Arduino pin D58; which on a RAMPS 1.4 card is located on the AUX 1 header. By default this is disabled, but can be enabled by uncommenting the `#define USE_LASER_MODE_ACTIVE_OUTPUT` directive in `cpu_map.h`. 
+
+* The spindle output waveform now has a mode that is compatible with RC Electronic Speed Control modules (such as those commonly used with brushless motors on radio-control aircraft and cars). Enable it by uncommenting the `#define SPINDLE_RC_ESC_MODE` directive on line 394 of `cpu_map.h`.
+
+* Preliminary support for axis cloning and auto-squaring is present; but mostly untested. Output bit inversion is known to be missing; and usage documentation needs to be written.
+
+* Keypads can now have rotation; this can be configured in `config.h` (see line 641).
+
+* Now ignores lines that begin with the "%" character.
+
+* Pressing button 1 on UI Encoder A from the status screen now activates the main menu. With the default configuration this button is the push action on the encoder knob of the RepRap Discount Smart Controller LCD board.
+
+
+## Targets for future updates (in no particular order):
+
+* Easier per-machine configuration across updates.
+
+* Better accuracy on the spindle tachometer.
+
+* Closed loop spindle RPM control. This probably won't be like having an actual servo motor for a spindle drive; but it will help keep the spindle turning at the speed you asked for.
+
+* MODBUS support on UART 2. The idea is to be able to set the frequency of a VFD for controlling the spindle motor.
+
+* Better support for multi-step operations from C functions.
+
+* Remove the SD card dependency from the Conversational Operations.
+
+* Plasma Cutter Mode with Torch Height Control. Support for both torch up and down input pins as well as analog input is planned. If you are designing hardware and wish to take advantage of the analog input, it will have a 0 to 2.5 volt range; the same as all the other analog inputs that this firmware supports. Probably obvious, but having an opto-isolator somewhere in between the plasma cutter and the Arduino would probably be a good idea.
+
+* Wire EDM Mode. Basically, if it's got good sparking; don't step the steppers. I might also be able to do something for sinker EDMs.
+
+* Lathe mode with threading & SFPM spindle speed control.
+
+* PWM output for the coolant signals.
+
+* Streaming to a SD card file. The idea is to be able to transfer a program to the SD card via a WiFi connection; and I figure most people will use either an ESP8266 or an ESP32 to handle the WiFi part.
+
+***
 
 ![GitHub Logo](https://github.com/gnea/gnea-Media/blob/master/Grbl%20Logo/Grbl%20Logo%20250px.png?raw=true)
 ***

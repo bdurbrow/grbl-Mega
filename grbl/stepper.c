@@ -57,21 +57,16 @@
 // NOTE: This data is copied from the prepped planner blocks so that the planner blocks may be
 // discarded when entirely consumed and completed by the segment buffer. Also, AMASS alters this
 // data for its own use.
-#ifdef DEFAULTS_RAMPS_BOARD
-  typedef struct {
-    uint32_t steps[N_AXIS];
-    uint32_t step_event_count;
+typedef struct {
+  uint32_t steps[N_AXIS];
+  uint32_t step_event_count;
+  #ifdef DEFAULTS_RAMPS_BOARD
     uint8_t direction_bits[N_AXIS];
-    uint8_t is_pwm_rate_adjusted;               // Tracks motions that require constant laser power/rate
-  } st_block_t;
-#else
-  typedef struct {
-    uint32_t steps[N_AXIS];
-    uint32_t step_event_count;
+  #else
     uint8_t direction_bits;
-    uint8_t is_pwm_rate_adjusted;               // Tracks motions that require constant laser power/rate
-  } st_block_t;
-#endif // Ramps Board
+  #endif // Ramps Board
+  uint8_t is_pwm_rate_adjusted;               // Tracks motions that require constant laser power/rate
+} st_block_t;
 
 static st_block_t st_block_buffer[SEGMENT_BUFFER_SIZE-1];
 
@@ -80,7 +75,7 @@ static st_block_t st_block_buffer[SEGMENT_BUFFER_SIZE-1];
 // planner buffer. Once "checked-out", the steps in the segments buffer cannot be modified by
 // the planner, where the remaining planner block steps still can.
 typedef struct {
-  uint16_t n_step;                            // Number of step events to be executed for this segment
+  uint16_t n_step;                            // Number of step events to be executed for this segment.
   uint16_t cycles_per_tick;                   // Step distance traveled per ISR tick, aka step rate.
   uint8_t  st_block_index;                    // Stepper block data index. Uses this information to execute this segment.
   #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
@@ -221,13 +216,8 @@ static st_prep_t prep;
   are shown and defined in the above illustration.
 */
 
-
 // Stepper state initialization. Cycle should only start if the st.cycle_start flag is
 // enabled. Startup init and limits call this function but shouldn't start the cycle.
-
-#ifdef DEFAULTS_RAMPS_BOARD
-  int idx;
-#endif // Ramps Board
 
 void st_wake_up()
 {
@@ -410,11 +400,7 @@ void st_go_idle()
 // int8 variables and update position counters only when a segment completes. This can get complicated
 // with probing and homing cycles that require true real-time positions.
 ISR(TIMER1_COMPA_vect)
-{  
-  #ifdef DEFAULTS_RAMPS_BOARD
-    int i;
-  #endif // Ramps Board
-
+{
   if (busy) { return; } // The busy-flag is used to avoid reentering this interrupt
 
   // Set the direction pins a couple of nanoseconds before we step the steppers
@@ -535,7 +521,7 @@ ISR(TIMER1_COMPA_vect)
         st.counter_x = st.counter_y = st.counter_z = (st.exec_block->step_event_count >> 1);
       }
       #ifdef DEFAULTS_RAMPS_BOARD
-        for (i = 0; i < N_AXIS; i++)
+        for (int8_t i = 0; i < N_AXIS; i++)
           st.dir_outbits[i] = st.exec_block->direction_bits[i] ^ dir_port_invert_mask[i];
       #else
         st.dir_outbits = st.exec_block->direction_bits ^ dir_port_invert_mask;
@@ -567,7 +553,7 @@ ISR(TIMER1_COMPA_vect)
 
   // Reset step out bits.
   #ifdef DEFAULTS_RAMPS_BOARD
-    for (i = 0; i < N_AXIS; i++)
+    for (int8_t i = 0; i < N_AXIS; i++)
       st.step_outbits[i] = 0;
   #else
     st.step_outbits = 0;
@@ -615,6 +601,7 @@ ISR(TIMER1_COMPA_vect)
       else { sys_position[Y_AXIS]++; }
     }
   #endif // Ramps Board
+  
   #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
     st.counter_z += st.steps[Z_AXIS];
   #else
@@ -638,7 +625,7 @@ ISR(TIMER1_COMPA_vect)
 
   // During a homing cycle, lock out and prevent desired axes from moving.
   #ifdef DEFAULTS_RAMPS_BOARD
-    for (i = 0; i < N_AXIS; i++)
+    for (int8_t i = 0; i < N_AXIS; i++)
     if (sys.state == STATE_HOMING) { st.step_outbits[i] &= sys.homing_axis_lock[i]; }
   #else
     if (sys.state == STATE_HOMING) { st.step_outbits &= sys.homing_axis_lock; }
@@ -651,7 +638,7 @@ ISR(TIMER1_COMPA_vect)
     if ( ++segment_buffer_tail == SEGMENT_BUFFER_SIZE) { segment_buffer_tail = 0; }
   }
   #ifdef DEFAULTS_RAMPS_BOARD
-    for (i = 0; i < N_AXIS; i++)
+    for (int8_t i = 0; i < N_AXIS; i++)
       st.step_outbits[i] ^= step_port_invert_mask[i];  // Apply step port invert mask
   #else
     st.step_outbits ^= step_port_invert_mask;  // Apply step port invert mask

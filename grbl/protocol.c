@@ -60,7 +60,7 @@ void protocol_main_loop()
     // Check if the safety door is open.
     sys.state = STATE_IDLE;
     if (system_check_safety_door_ajar()) {
-      bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
+      system_set_exec_state_flag(EXEC_SAFETY_DOOR);
       protocol_execute_realtime(); // Enter safety door mode. Should return as IDLE state.
     }
     // All systems go!

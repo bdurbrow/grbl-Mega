@@ -22,7 +22,6 @@
 #ifndef limitswitches_h
 #define limitswitches_h
 
-
 // Initialize the limits module
 void limits_init();
 
@@ -34,6 +33,18 @@ uint8_t limits_get_state();
 
 // Perform one portion of the homing cycle based on the input settings.
 void limits_go_home(uint8_t cycle_mask);
+
+#if(defined(SQUARE_CLONED_X_AXIS) || defined(SQUARE_CLONED_Y_AXIS))
+  #define LIMITS_AUTOSQUARING_OK              0
+  #define LIMITS_AUTOSQUARING_ERROR_IN_ABORT  1
+  #define LIMITS_AUTOSQUARING_ERROR_NOT_IDLE  2
+  #define LIMITS_AUTOSQUARING_ERROR_NOT_HOME  3
+  #define LIMITS_AUTOSQUARING_ERROR_CANCELED  4
+  #define LIMITS_AUTOSQUARING_ERROR_FAILED    5
+
+  // Perform axis auto-squaring operation. Machine must be not in an abort state; idle; and at home position on entry.
+  uint8_t limits_square_axis();
+#endif
 
 // Check for soft limit violations
 void limits_soft_check(float *target);

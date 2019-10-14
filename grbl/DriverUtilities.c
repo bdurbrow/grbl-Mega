@@ -2,40 +2,43 @@
 
 #include "DriverUtilities.h"
 
-// *********************************************************************
-// 1Khz Timer using AVR Timer 5
+#include "protocol.h"
 
-volatile uint32_t ticks_counter;
+// *********************************************************************
+// ~1Khz Timer using AVR Timer 2
+
+volatile uint32_t clock_ticks_counter;
 
 void clock_init()
 {
 	uint8_t oldSREG = SREG;
 	cli();
 
-  ticks_counter = 0;
+    clock_ticks_counter = 0;
 
-  TCCR2A = 0x00;
-  TCCR2B = 0x04; // Div 64 Prescaler. Normal mode. 976hz clock tick frequency on 16Mhz system clock.
-  ASSR = 0x00;
-  TCNT2 = 0x00;
-  TIMSK2 = 0x01; // Interrupt on overflow.
+    TCCR2A = 0x00;
+    TCCR2B = 0x04; // Div 64 Prescaler. Normal mode. 976hz clock tick frequency on 16Mhz system clock.
+    ASSR = 0x00;
+    TCNT2 = 0x00;
+    TIMSK2 = 0x01; // Interrupt on overflow.
   
 	SREG = oldSREG;
 }
 
-ISR(TIMER2_OVF_vect) { ticks_counter++; }
+ISR(TIMER2_OVF_vect) { clock_ticks_counter++; }
 
-uint32_t clock_ticks()
+void delay_clock_ticks(uint32_t ticks)
 {
-	uint8_t oldSREG = SREG;
-	cli();
-	
-  uint32_t value = ticks_counter;
-  
- 	SREG = oldSREG;
- 	
-  return value;
+  uint32_t end_ticks = clock_ticks() + ticks;
+  while(clock_ticks() <= end_ticks) protocol_execute_realtime();
 }
+
+void blocking_delay_clock_ticks(uint32_t ticks)
+{
+  uint32_t end_ticks = clock_ticks() + ticks;
+  while(clock_ticks() <= end_ticks);
+}
+
 
 // *********************************************************************
 // Delay for the given number of microseconds.  Assumes a 1, 8, 12, 16, 20 or 24 MHz clock.
@@ -301,7 +304,7 @@ char *sPrintFloat(char *result, uint8_t fieldWidth, float n, uint8_t decimal_pla
   return result;
 }
 
-// Similar to sPrintFloat() except result points at the end of the buffer, not the beginning,
+// Similar to sPrintFloat() except the text is placed at the end of the specified buffer
 // and fieldWidth is used to pad any excess space in result with ' ' characters.
 void sPrintFloatRightJustified(char *result, uint8_t fieldWidth, float n, uint8_t decimal_places)
 {

@@ -34,7 +34,18 @@ typedef uint8_t byte;
 #endif
 
   void clock_init();
-  uint32_t clock_ticks();
+  extern volatile uint32_t clock_ticks_counter; // Always access this with interrupts disabled! Increments at 976hz from Timer 2.
+  static inline __attribute__((always_inline)) uint32_t clock_ticks()
+  {
+    uint8_t oldSREG = SREG;
+    cli();
+      uint32_t value = clock_ticks_counter;
+    SREG = oldSREG;
+    return value;
+  }
+  
+  void delay_clock_ticks(uint32_t ticks);
+  void blocking_delay_clock_ticks(uint32_t ticks);  // Warning: this delay does NOT call protocol_execute_realtime()!
   void delayMicros(unsigned int us);
 
   float stringToFloat(char *string);

@@ -32,13 +32,17 @@ void spindle_init()
   SPINDLE_PWM_PORT &= ~(1<<SPINDLE_PWM_BIT);
   SPINDLE_TCCRA_REGISTER = SPINDLE_TCCRA_INIT_MASK; // Configure PWM output compare timer
   SPINDLE_TCCRB_REGISTER = SPINDLE_TCCRB_INIT_MASK;
-  #ifdef SPINDLE_OCRA_REGISTER
-    SPINDLE_OCRA_REGISTER = SPINDLE_OCRA_TOP_VALUE; // Set the top value for 16-bit fast PWM mode
+  #ifdef SPINDLE_TOP_REGISTER
+    SPINDLE_TOP_REGISTER = SPINDLE_PWM_TOP_VALUE; // Set the top value for 16-bit fast PWM mode
   #endif
+  
   SPINDLE_ENABLE_DDR |= (1<<SPINDLE_ENABLE_BIT); // Configure as output pin.
   SPINDLE_DIRECTION_DDR |= (1<<SPINDLE_DIRECTION_BIT); // Configure as output pin.
 
   pwm_gradient = SPINDLE_PWM_RANGE/(settings.rpm_max-settings.rpm_min);
+  #ifdef SPINDLE_RC_ESC_BOOT_DELAY
+    blocking_delay_clock_ticks(SPINDLE_RC_ESC_BOOT_DELAY);
+  #endif
   spindle_stop();
 }
 
@@ -62,7 +66,13 @@ uint8_t spindle_get_state()
 // Called by spindle_init(), spindle_set_speed(), spindle_set_state(), and mc_reset().
 void spindle_stop()
 {
-  SPINDLE_TCCRA_REGISTER &= ~(1<<SPINDLE_COMB_BIT); // Disable PWM. Output voltage is zero.
+  #ifdef SPINDLE_RC_ESC_MODE
+    SPINDLE_OCR_REGISTER = SPINDLE_PWM_OFF_VALUE;
+    SPINDLE_TCCRA_REGISTER |= (1<<SPINDLE_COMB_BIT); // Ensure PWM output is enabled.
+  #else
+    SPINDLE_TCCRA_REGISTER &= ~(1<<SPINDLE_COMB_BIT); // Disable PWM. Output voltage is zero.
+  #endif
+  
   #ifdef INVERT_SPINDLE_ENABLE_PIN
     SPINDLE_ENABLE_PORT |= (1<<SPINDLE_ENABLE_BIT);  // Set pin to high
   #else

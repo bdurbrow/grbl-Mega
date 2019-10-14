@@ -38,11 +38,14 @@ volatile uint8_t sys_rt_exec_accessory_override; // Global realtime executor bit
 int main(void)
 {
   // Initialize system upon power-up.
-  serial_init();   // Setup serial baud rate and interrupts
-  settings_init(); // Load Grbl settings from EEPROM
-  stepper_init();  // Configure stepper pins and interrupt timers
-  system_init();   // Configure pinout pins and pin-change interrupt
-  
+  serial_init();                    // Setup serial baud rate and interrupts
+  settings_init();                  // Load Grbl settings from EEPROM
+  stepper_init();                   // Configure stepper pins and interrupt timers
+  system_init();                    // Configure pinout pins and pin-change interrupt
+  #ifdef USE_SPINDLE_TACHOMETER
+    spindle_tachometer_init();      // Configure spindle tachometer timer & interrupts
+  #endif
+    
   clock_init();
   UISetup();
 
