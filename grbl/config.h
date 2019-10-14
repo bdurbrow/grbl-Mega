@@ -254,6 +254,7 @@
 #define MIN_SPINDLE_SPEED_OVERRIDE         10 // Percent of programmed spindle speed (1-100). Usually 10%.
 #define SPINDLE_OVERRIDE_COARSE_INCREMENT  10 // (1-99). Usually 10%.
 #define SPINDLE_OVERRIDE_FINE_INCREMENT     1 // (1-99). Usually 1%.
+#define SPINDLE_TACHOMETER_PULSESREV        1 // Comment to disable Tachometer, sets No of sensor pulses per rev
 
 // When a M2 or M30 program end command is executed, most g-code states are restored to their defaults.
 // This compile-time option includes the restoring of the feed, rapid, and spindle speed override values
@@ -272,6 +273,9 @@
 #define REPORT_FIELD_WORK_COORD_OFFSET // Default enabled. Comment to disable.
 #define REPORT_FIELD_OVERRIDES // Default enabled. Comment to disable.
 #define REPORT_FIELD_LINE_NUMBERS // Default enabled. Comment to disable.
+#ifdef SPINDLE_TACHOMETER_PULSESREV
+	#define REPORT_FIELD_TACHOMETER_SPEED // Default enabled. Comment to disable.
+#endif
 
 // Some status report data isn't necessary for realtime, only intermittently, because the values don't
 // change often. The following macros configures how many times a status report needs to be called before

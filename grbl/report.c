@@ -535,6 +535,11 @@ void report_realtime_status()
     printFloat(sys.spindle_speed,N_DECIMAL_RPMVALUE);
   #endif
 
+  #ifdef REPORT_FIELD_TACHOMETER_SPEED
+   printPgmString(PSTR("|RPM:"));
+   printInteger(poll_tachometer());
+  #endif
+
   #ifdef REPORT_FIELD_PIN_STATE
     uint8_t lim_pin_state = limits_get_state();
     uint8_t ctrl_pin_state = system_control_get_state();
