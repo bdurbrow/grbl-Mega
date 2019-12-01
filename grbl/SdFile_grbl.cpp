@@ -661,9 +661,7 @@ int16_t SdFile::readGCodeLine(void* buf, uint16_t nbyte) {
       curPosition_++;
       char c = *src++;
       toRead--;
-      
-      //serial_write(c);
-      
+            
       switch (c) {
         case 10:
           if(dst - (reinterpret_cast<uint8_t*>(buf)))
@@ -671,7 +669,12 @@ int16_t SdFile::readGCodeLine(void* buf, uint16_t nbyte) {
             didReadOK = true;
             goto done;
           }
-          else break;
+          else
+          {
+            inParentheticalComment = false;
+            inLineComment = false;
+            break;
+          }
           
         case 13:
           if(dst - (reinterpret_cast<uint8_t*>(buf)))
@@ -682,24 +685,28 @@ int16_t SdFile::readGCodeLine(void* buf, uint16_t nbyte) {
             }
             didReadCR = true;
             didReadOK = true;
-            break;
           }
-          else break;
+          inParentheticalComment = false;
+          inLineComment = false;
+          break;
         
         case '/': // Block delete NOT SUPPORTED. Ignore character.
           break;
         
         case '(':
-          inParentheticalComment = true;
+          if(!inLineComment)
+            inParentheticalComment = true;
           break;
         
         case ')':
-          inParentheticalComment = false;
+          if(!inLineComment)
+            inParentheticalComment = false;
           break;
         
         case ';':
         case '%':
-          inLineComment = true;
+          if(!inParentheticalComment)
+            inLineComment = true;
           break;
           
         default:

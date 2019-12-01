@@ -44,6 +44,9 @@ https://reprap.org/mediawiki/images/c/ca/Arduinomega1-4connectors.png
 ## Compiling:
 Use the Arduino IDE to compile this; the main file is grbl.ino which is located in the grbl folder.
 
+## December 1 Bugfix:
+
+* Fixed handling of comments in G-code files.
 
 ## October 2019 Update:
 

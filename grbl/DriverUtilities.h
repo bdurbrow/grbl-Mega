@@ -33,6 +33,14 @@ typedef uint8_t byte;
   extern "C"{
 #endif
 
+  #ifndef serial_h
+    #include "serial.h"
+  #endif
+
+  #ifndef print_h
+    #include "serialprint.h"
+  #endif
+
   void clock_init();
   extern volatile uint32_t clock_ticks_counter; // Always access this with interrupts disabled! Increments at 976hz from Timer 2.
   static inline __attribute__((always_inline)) uint32_t clock_ticks()
