@@ -622,6 +622,10 @@ AbstractUIPage *activeUIPage;
 					
 					if(key)
 					{
+					  #ifdef UI_KEYPAD_DIAGNOSTIC_MODE
+					    serial_write(key); serial_write(13); serial_write(10);
+					  #endif
+					  
 						switch(key)
 						{
 							case JOG_KEYVALUE:

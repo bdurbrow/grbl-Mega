@@ -44,6 +44,27 @@ https://reprap.org/mediawiki/images/c/ca/Arduinomega1-4connectors.png
 ## Compiling:
 Use the Arduino IDE to compile this; the main file is grbl.ino which is located in the grbl folder.
 
+## December 3, 2019 Update:
+
+* The `Keypad.pdf` file in the `UI Support` folder has been updated with functions for the RPN Calculator on it.
+
+* There is now a diagnostic mode for the keypad that can be enabled in the `config.h` file (look for it down near the bottom of the file). When enabled this will send the keypresses detected by the keypad driver to the serial port, where you can see them with any generic serial terminal connected to your Arduino Mega 2560 (the built-in Serial Monitor in the Arduino IDE is probably most convenient, though).  Note that as this is sending the key characters out the serial port in raw form, it will probably confuse any Grbl-specific interface application you may be running on your PC.
+
+  Most keys have characters that directly correspond to what's on the keypad overlay face; however there are some that are mapped to other single characters. The mapping is as follows:
+  ```
+  Jog                         j
+  Probe +                     p
+  Probe -                     n
+  Delete                      d
+  Menu                        m
+  MDI                         i
+  Enter                       e
+  Shifted Enter               E
+  Part Zero                   z
+  Shifted Part Zero           !
+  Shift                       s
+  ```
+
 ## December 1, 2019 Bugfix:
 
 * Fixed handling of comments in G-code files.

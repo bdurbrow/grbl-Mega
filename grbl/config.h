@@ -708,6 +708,11 @@
 	// stepper driver ISR.
 	#define DISPLAY_SD_LINE_COUNT	
 	
+	// If defined, this will enable a UI Keypad Diagnostic function that sends the keypresses
+	// detected on the keypad to the serial port. Enable this if your keypad does not seem to be
+	// behaving properly and you want to check that the keys are being detected.
+	// #define UI_KEYPAD_DIAGNOSTIC_MODE
+		
 /* ---------------------------------------------------------------------------------------
    OEM Single File Configuration Option
 
