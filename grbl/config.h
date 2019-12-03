@@ -638,7 +638,7 @@
 #define USE_UI_SUPPORT
 
   // UI Keypad orientation. Must be 0, 90, 180, or 270.
-  #define UI_KEYPAD_ORIENTATION 180
+  #define UI_KEYPAD_ORIENTATION 0
 
 	// Activate support for a second quadrature encoder used for jogging
 	#define USE_UI_ENCODER_B
