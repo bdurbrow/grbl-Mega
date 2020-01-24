@@ -602,6 +602,10 @@
 // to ensure the laser doesn't inadvertently remain powered while at a stop and cause a fire.
 #define DISABLE_LASER_DURING_HOLD // Default enabled. Comment to disable.
 
+// Do not change state of SPINDLE_ENABLE pin (by default 4) when operating with laser ($32=1 in GRBL configuration)
+// This way, when you have also connected spindle driver (along with laser) it should not try to power on spindle
+#define DONT_SWITCH_SPINDLE_ENABLE_FOR_LASER // Default enabled. Comment to disable.
+
 // Enables a piecewise linear model of the spindle PWM/speed output. Requires a solution by the
 // 'fit_nonlinear_spindle.py' script in the /doc/script folder of the repo. See file comments 
 // on how to gather spindle data and run the script to generate a solution.

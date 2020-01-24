@@ -26,7 +26,7 @@ static float pwm_gradient; // Precalulated value to speed up rpm to PWM conversi
 
 
 void spindle_init()
-{    
+{
   // Configure variable spindle PWM and enable pin, if required.
   SPINDLE_PWM_DDR |= (1<<SPINDLE_PWM_BIT); // Configure as PWM output pin.
   SPINDLE_PWM_PORT &= ~(1<<SPINDLE_PWM_BIT);
@@ -35,7 +35,7 @@ void spindle_init()
   #ifdef SPINDLE_TOP_REGISTER
     SPINDLE_TOP_REGISTER = SPINDLE_PWM_TOP_VALUE; // Set the top value for 16-bit fast PWM mode
   #endif
-  
+
   SPINDLE_ENABLE_DDR |= (1<<SPINDLE_ENABLE_BIT); // Configure as output pin.
   SPINDLE_DIRECTION_DDR |= (1<<SPINDLE_DIRECTION_BIT); // Configure as output pin.
 
@@ -72,7 +72,7 @@ void spindle_stop()
   #else
     SPINDLE_TCCRA_REGISTER &= ~(1<<SPINDLE_COMB_BIT); // Disable PWM. Output voltage is zero.
   #endif
-  
+
   #ifdef INVERT_SPINDLE_ENABLE_PIN
     SPINDLE_ENABLE_PORT |= (1<<SPINDLE_ENABLE_BIT);  // Set pin to high
   #else
@@ -179,7 +179,7 @@ void spindle_set_speed(uint16_t pwm_value)
 	return(pwm_value);
   }
 
-#endif  
+#endif
 
 // Immediately sets spindle running state with direction and spindle rpm via PWM, if enabled.
 // Called by g-code parser spindle_sync(), parking retract and restore, g-code program end,
@@ -188,12 +188,12 @@ void spindle_set_state(uint8_t state, float rpm)
 {
   if (sys.abort) { return; } // Block during abort.
   if (state == SPINDLE_DISABLE) { // Halt or set spindle direction and rpm.
-  
+
     sys.spindle_speed = 0.0;
     spindle_stop();
-  
+
   } else {
-  
+
     if (state == SPINDLE_ENABLE_CW) {
       SPINDLE_DIRECTION_PORT &= ~(1<<SPINDLE_DIRECTION_BIT);
     } else {
@@ -201,26 +201,29 @@ void spindle_set_state(uint8_t state, float rpm)
     }
 
     // NOTE: Assumes all calls to this function is when Grbl is not moving or must remain off.
-    if (settings.flags & BITFLAG_LASER_MODE) { 
+    if (settings.flags & BITFLAG_LASER_MODE) {
       if (state == SPINDLE_ENABLE_CCW) { rpm = 0.0; } // TODO: May need to be rpm_min*(100/MAX_SPINDLE_SPEED_OVERRIDE);
     }
     spindle_set_speed(spindle_compute_pwm_value(rpm));
 
     #ifndef SPINDLE_ENABLE_OFF_WITH_ZERO_SPEED
+     #ifdef DONT_SWITCH_SPINDLE_ENABLE_FOR_LASER
+      if (bit_isfalse(settings.flags,BITFLAG_LASER_MODE))     // if we are in LASER mode - do not enable SPINDLE_ENABLE_PORT
+     #endif
       #ifdef INVERT_SPINDLE_ENABLE_PIN
         SPINDLE_ENABLE_PORT &= ~(1<<SPINDLE_ENABLE_BIT);
       #else
         SPINDLE_ENABLE_PORT |= (1<<SPINDLE_ENABLE_BIT);
-      #endif   
+      #endif
     #endif
-  
+
   }
-  
+
   sys.report_ovr_counter = 0; // Set to report change immediately
 }
 
 
-// G-code parser entry-point for setting spindle state. Forces a planner buffer sync and bails 
+// G-code parser entry-point for setting spindle state. Forces a planner buffer sync and bails
 // if an abort or check-mode is active.
 void spindle_sync(uint8_t state, float rpm)
 {
