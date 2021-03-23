@@ -2186,6 +2186,7 @@ AbstractUIPage *activeUIPage;
       }
       else
       {
+	      while(editBufferState<4) {editBuffer[editBufferState++] = ' ';}
     		jogFeed = stringToFloat(editBuffer);
       }
     			
